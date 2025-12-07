@@ -2,10 +2,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import {
   RegistrationCategory,
   useRegistrationStore,
@@ -26,10 +25,10 @@ import { Textarea } from "@/components/ui/textarea";
 import CountryStateCitySelect from "@/components/common/CountryStateCitySelect";
 import { useEventStore } from "@/app/store/useEventStore";
 import { medicalCouncils } from "@/app/data/medicalCouncils";
-import { formatSlabValidity } from "@/app/utils/formatEventDate";
+import { formatValidTill } from "@/app/utils/formatEventDate";
 
-// ✅ Schema for validation
-const schema = z.object({
+// Base schema
+const baseSchema = z.object({
   prefix: z.string().min(1, "Prefix is required"),
   fullName: z.string().min(1, "Full Name is required"),
   phone: z.string().regex(/^\d{10}$/, { message: "Mobile must be 10 digits" }),
@@ -45,19 +44,86 @@ const schema = z.object({
   pincode: z.string().min(1, "Pincode is required"),
   gender: z.string().min(1, "Gender is required"),
   mealPreference: z.string().min(1, "Please select a meal preference"),
-  // add near the end of your schema object
   acceptedTerms: z.boolean().refine((v) => v === true, {
     message: "You must accept the terms and conditions",
   }),
-
   registrationCategory: z.object({
     _id: z.string(),
-    slabName: z.string(), // ✅ Changed from categoryName to slabName
+    slabName: z.string(),
     amount: z.number(),
+    needAdditionalInfo: z.boolean().optional(),
+    additionalFields: z.array(z.any()).optional(),
   }),
 });
 
-type FormData = z.infer<typeof schema>;
+// Function to create dynamic schema
+const createDynamicSchema = (category: RegistrationCategory | null) => {
+  if (!category?.needAdditionalInfo || !category.additionalFields?.length) {
+    return baseSchema;
+  }
+
+  // Create a fresh schema object
+  const schemaFields: any = {
+    prefix: z.string().min(1, "Prefix is required"),
+    fullName: z.string().min(1, "Full Name is required"),
+    phone: z
+      .string()
+      .regex(/^\d{10}$/, { message: "Mobile must be 10 digits" }),
+    email: z.string().email("Invalid email"),
+    affiliation: z.string().min(1, "Affiliation is required"),
+    designation: z.string().min(1, "Designation is required"),
+    medicalCouncilRegistration: z.string().min(1, "Registration is required"),
+    medicalCouncilState: z.string().min(1, "Medical Council State is required"),
+    address: z.string().min(1, "Address is required"),
+    country: z.string().min(1, "Country is required"),
+    state: z.string().min(1, "State is required"),
+    city: z.string().min(1, "City is required"),
+    pincode: z.string().min(1, "Pincode is required"),
+    gender: z.string().min(1, "Gender is required"),
+    mealPreference: z.string().min(1, "Please select a meal preference"),
+    acceptedTerms: z.boolean().refine((v) => v === true, {
+      message: "You must accept the terms and conditions",
+    }),
+    registrationCategory: z.object({
+      _id: z.string(),
+      slabName: z.string(),
+      amount: z.number(),
+      needAdditionalInfo: z.boolean().optional(),
+      additionalFields: z.array(z.any()).optional(),
+    }),
+  };
+
+  // Add dynamic fields
+  category.additionalFields.forEach((field) => {
+    const fieldKey = `additional_${field.id}`;
+
+    switch (field.type) {
+      case "textbox":
+      case "date":
+      case "radio":
+        schemaFields[fieldKey] = z
+          .string()
+          .min(1, `${field.label} is required`);
+        break;
+      case "checkbox":
+        schemaFields[fieldKey] = z
+          .array(z.string())
+          .min(1, `Please select at least one option for ${field.label}`);
+        break;
+      case "upload":
+        // For upload fields, we'll handle validation separately
+        schemaFields[fieldKey] = z.any().optional();
+        break;
+      default:
+        schemaFields[fieldKey] = z.string().optional();
+    }
+  });
+
+  return z.object(schemaFields);
+};
+
+type DynamicSchema = ReturnType<typeof createDynamicSchema>;
+type FormDataType = z.infer<DynamicSchema>;
 
 type MealPreference = {
   _id: string;
@@ -71,14 +137,18 @@ type MealPreference = {
 
 export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
   const { basicDetails, updateBasicDetails } = useRegistrationStore();
-  const { currentEvent } = useEventStore(); // Get current event from store
-  const [categories, setCategories] = useState([]);
+  const { currentEvent } = useEventStore();
+  const [categories, setCategories] = useState<RegistrationCategory[]>([]);
   const [mealPreferences, setMealPreferences] = useState<MealPreference[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMeals, setLoadingMeals] = useState(false);
   const [terms, setTerms] = useState<any[]>([]);
   const [termsLoading, setTermsLoading] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
+  const [selectedCategory, setSelectedCategory] =
+    useState<RegistrationCategory | null>(null);
+  const [dynamicSchema, setDynamicSchema] = useState<DynamicSchema>(() =>
+    createDynamicSchema(null)
+  );
 
   const {
     register,
@@ -88,20 +158,222 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     control,
     watch,
     formState: { errors },
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues: basicDetails,
+  } = useForm<FormDataType>({
+    resolver: zodResolver(dynamicSchema),
+    defaultValues: {
+      ...basicDetails,
+      ...(basicDetails.additionalAnswers || {}),
+    } as any,
   });
 
-  // Prefill form when basicDetails changes
+  // Prefill form
   useEffect(() => {
-    reset(basicDetails);
+    const defaultValues: any = { ...basicDetails };
+
+    // Add additional answers to form values
+    if (basicDetails.additionalAnswers) {
+      Object.entries(basicDetails.additionalAnswers).forEach(([key, value]) => {
+        defaultValues[`additional_${key}`] = value;
+      });
+    }
+
+    reset(defaultValues);
+
+    if (basicDetails.registrationCategory) {
+      setSelectedCategory(basicDetails.registrationCategory);
+      const newSchema = createDynamicSchema(basicDetails.registrationCategory);
+      setDynamicSchema(newSchema);
+    }
   }, [basicDetails, reset]);
 
-  const onSubmit = (data: FormData) => {
-    updateBasicDetails(data);
+  // Update schema when category changes
+  const updateDynamicSchema = (category: RegistrationCategory | null) => {
+    const newSchema = createDynamicSchema(category);
+    setDynamicSchema(newSchema);
+  };
+
+  // In Step1BasicDetails.tsx - in the onSubmit function
+  const onSubmit: SubmitHandler<FormDataType> = (data) => {
+    const additionalAnswers: Record<string, any> = {};
+    const fileUploads: Record<string, File> = {};
+
+    if (data.registrationCategory?.needAdditionalInfo) {
+      Object.keys(data).forEach((key) => {
+        if (key.startsWith("additional_")) {
+          const fieldId = key.replace("additional_", "");
+          const value = (data as any)[key];
+
+          // Check if it's a file
+          if (value instanceof File) {
+            fileUploads[fieldId] = value;
+            additionalAnswers[fieldId] = null; // Store null for file fields
+          } else {
+            additionalAnswers[fieldId] = value;
+          }
+        }
+      });
+    }
+
+    // Save to store
+    updateBasicDetails({
+      ...data,
+      additionalAnswers,
+      fileUploads,
+      eventId: currentEvent?._id || "",
+      eventName: currentEvent?.eventName || "",
+    } as any);
+
     toast.success("Details saved!");
     onNext();
+  };
+
+  const handleCategorySelect = (category: RegistrationCategory) => {
+    setSelectedCategory(category);
+    setValue("registrationCategory", category);
+    updateDynamicSchema(category);
+
+    // Clear previous additional answers when category changes
+    if (category?.needAdditionalInfo && category.additionalFields) {
+      category.additionalFields.forEach((field) => {
+        const fieldKey = `additional_${field.id}`;
+        if (field.type === "checkbox") {
+          setValue(fieldKey as any, []);
+        } else {
+          setValue(fieldKey as any, "");
+        }
+      });
+    }
+  };
+
+  // Render additional fields
+  const renderAdditionalFields = () => {
+    if (
+      !selectedCategory?.needAdditionalInfo ||
+      !selectedCategory.additionalFields?.length
+    ) {
+      return null;
+    }
+
+    return (
+      <div className="mt-6 p-6 border border-blue-200 rounded-lg">
+        <h3 className="text-lg font-semibold text-[#00509E] mb-4">
+          Additional Information Required
+        </h3>
+        <div className="space-y-4">
+          {selectedCategory.additionalFields.map((field) => {
+            const fieldKey = `additional_${field.id}`;
+            const isRequired = ["textbox", "date", "radio", "upload"].includes(
+              field.type
+            );
+
+            return (
+              <div key={field.id} className="space-y-2">
+                <Label className="font-medium">
+                  {field.label}
+                  {isRequired && <span className="text-red-600"> *</span>}
+                </Label>
+
+                {field.type === "textbox" && (
+                  <Input
+                    {...register(fieldKey as any)}
+                    placeholder={`Enter ${field.label.toLowerCase()}`}
+                    className="bg-white"
+                  />
+                )}
+
+                {field.type === "date" && (
+                  <Input
+                    type="date"
+                    {...register(fieldKey as any)}
+                    className="bg-white"
+                  />
+                )}
+
+                {field.type === "radio" && field.options && (
+                  <div className="space-y-2">
+                    {field.options.map((option) => (
+                      <label
+                        key={option.id}
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          value={option.label}
+                          {...register(fieldKey as any)}
+                          className="text-[#00509E]"
+                        />
+                        <span className="text-gray-700">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {field.type === "checkbox" && field.options && (
+                  <div className="space-y-2">
+                    {field.options.map((option) => (
+                      <label
+                        key={option.id}
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          value={option.label}
+                          onChange={(e) => {
+                            const currentValues = watch(fieldKey as any) || [];
+                            if (e.target.checked) {
+                              setValue(fieldKey as any, [
+                                ...currentValues,
+                                option.label,
+                              ]);
+                            } else {
+                              setValue(
+                                fieldKey as any,
+                                currentValues.filter(
+                                  (v: string) => v !== option.label
+                                )
+                              );
+                            }
+                          }}
+                          className="text-[#00509E] rounded"
+                        />
+                        <span className="text-gray-700">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {field.type === "upload" && (
+                  <div>
+                    <Input
+                      type="file"
+                      accept={`.${field.extension || "*"}`}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setValue(fieldKey as any, file);
+                        }
+                      }}
+                      className="bg-white"
+                    />
+                    {field.extension && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Upload .{field.extension} file only
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {(errors as any)[fieldKey] && (
+                  <p className="text-sm text-red-600">
+                    {(errors as any)[fieldKey]?.message as string}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   // Fetch meal preferences based on event ID
@@ -226,12 +498,13 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data)) {
-          // Transform the data to match your existing structure
           const transformedCategories = data.data.map((slab: any) => ({
             _id: slab._id,
-            slabName: slab.slabName, // Using slabName instead of categoryName
+            slabName: slab.slabName,
             amount: slab.amount,
-            // Add any additional fields you need
+            AccompanyAmount: slab.AccompanyAmount,
+            needAdditionalInfo: slab.needAdditionalInfo,
+            additionalFields: slab.additionalFields,
             startDate: slab.startDate,
             endDate: slab.endDate,
           }));
@@ -251,7 +524,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     }
 
     fetchRegistrationSlabs();
-  }, [currentEvent?._id]); // Re-fetch when event ID changes
+  }, [currentEvent?._id]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
@@ -267,7 +540,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             {...register("prefix")}
           />
           {errors.prefix && (
-            <p className="text-sm text-red-600">{errors.prefix.message}</p>
+            <p className="text-sm text-red-600">
+              {typeof errors.prefix.message === "string"
+                ? errors.prefix.message
+                : "This field is required"}
+            </p>
           )}
         </div>
 
@@ -277,7 +554,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           </Label>
           <Input {...register("fullName")} />
           {errors.fullName && (
-            <p className="text-sm text-red-600">{errors.fullName.message}</p>
+            <p className="text-sm text-red-600">
+              {typeof errors.fullName.message === "string"
+                ? errors.fullName.message
+                : "This field is required"}
+            </p>
           )}
         </div>
 
@@ -302,7 +583,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             )}
           />
           {errors.gender && (
-            <p className="text-sm text-red-600">{errors.gender.message}</p>
+            <p className="text-sm text-red-600">
+              {typeof errors.gender.message === "string"
+                ? errors.gender.message
+                : "This field is required"}
+            </p>
           )}
         </div>
 
@@ -312,7 +597,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           </Label>
           <Input {...register("email")} />
           {errors.email && (
-            <p className="text-sm text-red-600">{errors.email.message}</p>
+            <p className="text-sm text-red-600">
+              {typeof errors.email.message === "string"
+                ? errors.email.message
+                : "This field is required"}
+            </p>
           )}
         </div>
 
@@ -332,7 +621,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             }}
           />
           {errors.phone && (
-            <p className="text-sm text-red-600">{errors.phone.message}</p>
+            <p className="text-sm text-red-600">
+              {typeof errors.phone.message === "string"
+                ? errors.phone.message
+                : "This field is required"}
+            </p>
           )}
         </div>
 
@@ -342,7 +635,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           </Label>
           <Input {...register("affiliation")} />
           {errors.affiliation && (
-            <p className="text-sm text-red-600">{errors.affiliation.message}</p>
+            <p className="text-sm text-red-600">
+              {typeof errors.affiliation.message === "string"
+                ? errors.affiliation.message
+                : "This field is required"}
+            </p>
           )}
         </div>
 
@@ -358,7 +655,9 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           <Input {...register("medicalCouncilRegistration")} />
           {errors.medicalCouncilRegistration && (
             <p className="text-sm text-red-600">
-              {errors.medicalCouncilRegistration.message}
+              {typeof errors.medicalCouncilRegistration.message === "string"
+                ? errors.medicalCouncilRegistration.message
+                : "This field is required"}
             </p>
           )}
         </div>
@@ -410,7 +709,9 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           />
           {errors.mealPreference && (
             <p className="text-sm text-red-600">
-              {errors.mealPreference.message}
+              {typeof errors.mealPreference.message === "string"
+                ? errors.mealPreference.message
+                : "This field is required"}
             </p>
           )}
           {loadingMeals && (
@@ -454,7 +755,9 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
 
           {errors.medicalCouncilState && (
             <p className="text-sm text-red-600">
-              {errors.medicalCouncilState.message}
+              {typeof errors.medicalCouncilState.message === "string"
+                ? errors.medicalCouncilState.message
+                : "This field is required"}
             </p>
           )}
         </div>
@@ -465,7 +768,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           </Label>
           <Textarea {...register("address")} />
           {errors.address && (
-            <p className="text-sm text-red-600">{errors.address.message}</p>
+            <p className="text-sm text-red-600">
+              {typeof errors.address.message === "string"
+                ? errors.address.message
+                : "This field is required"}
+            </p>
           )}
         </div>
 
@@ -513,12 +820,13 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                 ? JSON.stringify(basicDetails.registrationCategory)
                 : ""
             }
-            onValueChange={(val) =>
-              setValue("registrationCategory", JSON.parse(val))
-            }
-            className="space-y-2"
+            onValueChange={(val) => {
+              const category = JSON.parse(val);
+              handleCategorySelect(category);
+            }}
+            className="space-y-2 border border-gray-200 rounded-lg p-3"
           >
-            {categories.map((cat: any) => (
+            {categories.map((cat) => (
               <Label
                 key={cat._id}
                 htmlFor={cat._id}
@@ -528,9 +836,9 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                   <RadioGroupItem value={JSON.stringify(cat)} id={cat._id} />
                   <div>
                     <span className="font-medium">{cat.slabName}</span>
-                    {cat.startDate && cat.endDate && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatSlabValidity(cat.startDate, cat.endDate)}
+                    {cat.needAdditionalInfo && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        ⓘ Additional information required
                       </p>
                     )}
                   </div>
@@ -539,6 +847,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                   <p className="font-semibold text-green-600">
                     ₹ {cat.amount.toLocaleString("en-IN")}.00
                   </p>
+                  {cat.endDate && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatValidTill(cat.endDate)}
+                    </p>
+                  )}
                 </div>
               </Label>
             ))}
@@ -546,10 +859,15 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         )}
         {errors.registrationCategory && (
           <p className="text-sm text-red-600">
-            {errors.registrationCategory.message}
+            {typeof errors.registrationCategory.message === "string"
+              ? errors.registrationCategory.message
+              : "This field is required"}
           </p>
         )}
       </div>
+
+      {/* Render Additional Fields */}
+      {renderAdditionalFields()}
 
       {/* Terms & Conditions - Compact Version */}
       <div className="mt-6">
@@ -587,10 +905,13 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             )}
           />
         </div>
-
         {/* Validation Error */}
         {errors.acceptedTerms && (
-          <p className="text-sm text-red-600">{errors.acceptedTerms.message}</p>
+          <p className="text-sm text-red-600">
+            {typeof errors.acceptedTerms.message === "string"
+              ? errors.acceptedTerms.message
+              : "This field is required"}
+          </p>
         )}
       </div>
 

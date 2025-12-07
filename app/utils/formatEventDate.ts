@@ -27,7 +27,6 @@ export function formatEventDate(startDate?: string, endDate?: string) {
   return `${formatter.format(start)} – ${formatter.format(end)}`;
 }
 
-
 export function formatSlabValidity(startISO?: string, endISO?: string) {
   if (!startISO || !endISO) return "";
 
@@ -51,6 +50,39 @@ export function formatSlabValidity(startISO?: string, endISO?: string) {
   return `Validity expired on ${fmt.format(end)}`;
 }
 
+export function formatValidTill(endDate?: string) {
+  if (!endDate) return "";
+
+  // Check if date is in DD/MM/YYYY format
+  const isSlabFormat = endDate.includes("/") && !endDate.includes("-");
+
+  let end: Date;
+
+  if (isSlabFormat) {
+    // Parse DD/MM/YYYY format
+    const [day, month, year] = endDate.split("/").map(Number);
+    end = new Date(year, month - 1, day);
+  } else {
+    // Parse ISO format (YYYY-MM-DD)
+    end = new Date(endDate);
+  }
+
+  if (Number.isNaN(end.getTime())) return "";
+
+  const fmt = new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  const today = new Date();
+
+  if (today <= end) {
+    return `Valid till ${fmt.format(end)}`;
+  }
+
+  return `Validity expired on ${fmt.format(end)}`;
+}
 
 //for single dates
 export function formatSingleDate(dateString: string) {
@@ -60,4 +92,4 @@ export function formatSingleDate(dateString: string) {
     month: "short",
     year: "numeric",
   });
-};
+}
