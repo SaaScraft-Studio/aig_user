@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CldImage } from "next-cloudinary";
 
 const schema = z.object({
   email: z
@@ -308,10 +309,13 @@ export default function Login() {
 
           {/* Right Image Section - Hidden on mobile, shown on lg screens */}
           <div className="hidden lg:block relative">
-            <img
-              src="/authImg/login.png"
+            <CldImage
+              src="login_khcr0n"
               alt="Login to your account"
-              className="h-full w-full object-cover"
+              fill
+              sizes="50vw"
+              className="object-cover"
+              priority={true}
             />
             {/* <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
             <div className="absolute inset-0 flex items-center justify-center p-12">

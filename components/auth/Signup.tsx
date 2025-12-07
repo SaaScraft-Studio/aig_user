@@ -31,6 +31,7 @@ import Link from "next/link";
 import CountryStateCitySelect from "../common/CountryStateCitySelect";
 import ReCAPTCHA from "react-google-recaptcha";
 import { cn } from "@/lib/utils";
+import { CldImage } from "next-cloudinary";
 
 countries.registerLocale(enLocale);
 
@@ -549,25 +550,25 @@ export default function Signup() {
                   </div> */}
 
                   {/* Terms & Conditions */}
-                  {/* Terms & Conditions */}
                   <div className="flex items-start space-x-3 mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <Checkbox
                       id="termAndCondition"
                       checked={watch("termAndCondition")}
                       onCheckedChange={(checked) => {
-                        // Convert Checkbox's CheckedState to boolean
                         const isChecked = checked === true;
-                        // Update form value
                         setValue("termAndCondition", isChecked, {
                           shouldValidate: true,
                         });
-                        // Clear any existing errors
                         if (errors.termAndCondition) {
                           clearErrors("termAndCondition");
                         }
                       }}
                       className={cn(
-                        "mt-0.5 cursor-pointer data-[state=checked]:bg-[#00509E] data-[state=checked]:border-[#00509E]",
+                        "h-5 w-5 cursor-pointer rounded border-2",
+                        // More visible states
+                        !watch("termAndCondition")
+                          ? "border-gray-400 bg-white"
+                          : "border-[#00509E] bg-[#00509E]",
                         errors.termAndCondition && "border-red-500"
                       )}
                     />
@@ -576,19 +577,27 @@ export default function Signup() {
                       className="text-sm text-gray-700 cursor-pointer leading-relaxed"
                     >
                       I agree to all{" "}
-                      <Link
-                        href="/terms"
+                      <button
+                        type="button"
+                        // onClick={() =>
+                        //   alert(
+                        //     "Terms & Conditions page will be available soon"
+                        //   )
+                        // }
                         className="text-[#00509E] underline hover:text-[#003B73] font-medium"
                       >
                         Terms & Conditions
-                      </Link>{" "}
+                      </button>{" "}
                       and{" "}
-                      <Link
-                        href="/privacy"
+                      <button
+                        type="button"
+                        // onClick={() =>
+                        //   alert("Privacy Policy page will be available soon")
+                        // }
                         className="text-[#00509E] underline hover:text-[#003B73] font-medium"
                       >
                         Privacy Policy
-                      </Link>
+                      </button>
                     </label>
                   </div>
                   {errors.termAndCondition && (
@@ -630,39 +639,43 @@ export default function Signup() {
           </div>
 
           {/* Right Image Section - Hidden on mobile, shown on lg screens */}
-          <div className="hidden lg:block relative">
-            <img
-              src="/authImg/signup.png" // or use your image path
+          <div className="hidden lg:block relative w-full h-full">
+            <CldImage
+              src="signup_bxxhz1" // ← Use the Public ID from Step 4
               alt="Professional community networking"
-              className="h-full w-full object-cover"
+              fill
+              sizes="50vw"
+              className="object-cover"
+              priority={true}
             />
-            {/* <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-            <div className="absolute inset-0 flex items-center justify-center p-12"> */}
-            <div className="text-center text-white space-y-6 max-w-md">
-              <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto backdrop-blur-sm">
-                <Smartphone className="w-12 h-12 text-white" />
+
+            {/* Your overlay content stays exactly the same */}
+            {/* <div className="absolute inset-0 flex items-center justify-center p-12">
+              <div className="text-center text-white space-y-6 max-w-md">
+                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto backdrop-blur-sm">
+                  <Smartphone className="w-12 h-12 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold">Welcome to Our Community</h2>
+                <p className="text-white/90 text-lg leading-relaxed">
+                  Join thousands of professionals who are already using our
+                  platform to connect, learn, and grow together.
+                </p>
+                <div className="space-y-3 text-sm text-white/80">
+                  <div className="flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-300" />
+                    <span>Secure & Reliable Platform</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-300" />
+                    <span>24/7 Customer Support</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-300" />
+                    <span>Easy to Use Interface</span>
+                  </div>
+                </div>
               </div>
-              <h2 className="text-3xl font-bold">Welcome to Our Community</h2>
-              <p className="text-white/90 text-lg leading-relaxed">
-                Join thousands of professionals who are already using our
-                platform to connect, learn, and grow together.
-              </p>
-              <div className="space-y-3 text-sm text-white/80">
-                <div className="flex items-center justify-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span>Secure & Reliable Platform</span>
-                </div>
-                <div className="flex items-center justify-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span>24/7 Customer Support</span>
-                </div>
-                <div className="flex items-center justify-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span>Easy to Use Interface</span>
-                </div>
-              </div>
-            </div>
-            {/* </div> */}
+            </div> */}
           </div>
         </div>
       </div>
