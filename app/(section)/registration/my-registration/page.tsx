@@ -84,6 +84,13 @@ function RegistrationContent() {
       try {
         setLoading(true);
         setSettingsChecked(false);
+        // resetForm();
+        // setStep(1);
+
+        if (eventIdFromUrl && !fromBadge) {
+          resetForm();
+          setStep(1);
+        }
 
         // Fetch events if not loaded
         if (!events.length) {
@@ -162,6 +169,7 @@ function RegistrationContent() {
 
                 if (fromBadge || registrationData.data) {
                   resetForm();
+                  setStep(1);
                 }
               }
             }
@@ -206,6 +214,7 @@ function RegistrationContent() {
     setCurrentEvent,
     updateBasicDetails,
     resetForm,
+    setStep,
   ]);
 
   const goNext = () => setStep(Math.min(currentStep + 1, 2));
