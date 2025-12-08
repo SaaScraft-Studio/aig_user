@@ -60,6 +60,7 @@ export type BasicDetails = {
   additionalAnswers?: Record<string, any>; // Changed from additionalInfo
   fileUploads?: Record<string, File>;
   registrationId?: string;
+  registrationSlabId?: string;
 };
 
 // Accompanying person type

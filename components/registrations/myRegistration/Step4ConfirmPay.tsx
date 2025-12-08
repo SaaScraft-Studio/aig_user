@@ -52,11 +52,9 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       // Create FormData for file uploads
       const formData = new FormData();
 
+      const registrationSlabId = basicDetails.registrationCategory._id;
       // 1. Add all basic fields as text
-      formData.append(
-        "registrationSlabId",
-        basicDetails.registrationCategory?._id
-      );
+      formData.append("registrationSlabId", registrationSlabId);
       formData.append("prefix", basicDetails.prefix || "");
       formData.append("name", basicDetails.fullName); // Changed from fullName to name
       formData.append("gender", basicDetails.gender || "");
@@ -165,19 +163,18 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
           formDataObj[key] = value;
         }
       }
-      console.log("Complete FormData:", JSON.stringify(formDataObj, null, 2));
-      console.log("=== END FORM DATA ===");
+      // console.log("Complete FormData:", JSON.stringify(formDataObj, null, 2));
+      // console.log("=== END FORM DATA ===");
 
       // 5. Make API call with FormData (multipart/form-data)
       const token = localStorage.getItem("accessToken");
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${basicDetails.eventId}/register`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${basicDetails.eventId}/register?registrationSlabId=${basicDetails.registrationCategory._id}`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
-            // NOTE: Don't set Content-Type for FormData, browser will set it
           },
           body: formData,
         }
