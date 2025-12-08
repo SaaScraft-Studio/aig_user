@@ -246,7 +246,7 @@ export default function EventTabs() {
                 {/* Image */}
                 <div
                   className="w-full overflow-hidden"
-                  style={{ aspectRatio: "4/3" }}
+                  style={{ aspectRatio: "300/250" }}
                 >
                   <img
                     src={event.eventImage}
