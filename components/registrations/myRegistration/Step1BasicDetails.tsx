@@ -255,7 +255,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     }
 
     return (
-      <div className="mt-6 p-6 border border-blue-200 rounded-lg">
+      <div className="mt-6 p-6 border rounded-lg">
         <h3 className="text-lg font-semibold text-[#00509E] mb-4">
           Additional Information Required
         </h3>
@@ -337,7 +337,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                     ))}
                   </div>
                 )}
-
                 {field.type === "upload" && (
                   <div>
                     <Input
