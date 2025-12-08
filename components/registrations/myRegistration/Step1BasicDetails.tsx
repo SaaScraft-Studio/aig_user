@@ -272,7 +272,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                   {field.label}
                   {isRequired && <span className="text-red-600"> *</span>}
                 </Label>
-
                 {field.type === "textbox" && (
                   <Input
                     {...register(fieldKey as any)}
@@ -280,7 +279,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                     className="bg-white"
                   />
                 )}
-
                 {field.type === "date" && (
                   <Input
                     type="date"
@@ -288,7 +286,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                     className="bg-white"
                   />
                 )}
-
                 {field.type === "radio" && field.options && (
                   <div className="space-y-2">
                     {field.options.map((option) => (
@@ -307,7 +304,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                     ))}
                   </div>
                 )}
-
                 {field.type === "checkbox" && field.options && (
                   <div className="space-y-2">
                     {field.options.map((option) => (
@@ -350,19 +346,64 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
+                          // ✅ Client-side file validation
+                          const maxSize = 5 * 1024 * 1024; // 5MB
+
+                          // Check file size
+                          if (file.size > maxSize) {
+                            toast.error(
+                              `File "${field.label}" exceeds 5MB limit. Please choose a smaller file.`
+                            );
+                            e.target.value = ""; // Clear the input
+                            return;
+                          }
+
+                          // Check file extension if specified
+                          if (field.extension) {
+                            const allowedExtensions = field.extension
+                              .split(",")
+                              .map((ext) =>
+                                ext.trim().toLowerCase().replace(".", "")
+                              );
+                            const fileExtension = file.name
+                              .split(".")
+                              .pop()
+                              ?.toLowerCase();
+
+                            if (
+                              !fileExtension ||
+                              !allowedExtensions.includes(fileExtension)
+                            ) {
+                              toast.error(
+                                `File must be of type: ${field.extension}`
+                              );
+                              e.target.value = ""; // Clear the input
+                              return;
+                            }
+                          }
+
                           setValue(fieldKey as any, file);
+
+                          // Show success message with file info
+                          const fileSizeKB = Math.round(file.size / 1024);
+                          const fileSizeMB = (
+                            file.size /
+                            (1024 * 1024)
+                          ).toFixed(2);
+                          toast.success(
+                            `"${file.name}" uploaded (${fileSizeKB} KB)`
+                          );
                         }
                       }}
                       className="bg-white"
                     />
                     {field.extension && (
                       <p className="text-sm text-gray-500 mt-1">
-                        Upload .{field.extension} file only
+                        Upload .{field.extension} file only (max 5MB)
                       </p>
                     )}
                   </div>
                 )}
-
                 {(errors as any)[fieldKey] && (
                   <p className="text-sm text-red-600">
                     {(errors as any)[fieldKey]?.message as string}

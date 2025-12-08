@@ -33,6 +33,8 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
 
   const regAmount = basicDetails?.registrationCategory?.amount || 0;
 
+  // Replace the entire handleSubmit function in Step4ConfirmPay.tsx with this:
+
   const handleSubmit = async () => {
     if (
       !basicDetails.eventId ||
@@ -56,10 +58,10 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       // 1. Add all basic fields as text
       formData.append("registrationSlabId", registrationSlabId);
       formData.append("prefix", basicDetails.prefix || "");
-      formData.append("name", basicDetails.fullName); // Changed from fullName to name
+      formData.append("name", basicDetails.fullName);
       formData.append("gender", basicDetails.gender || "");
       formData.append("email", basicDetails.email);
-      formData.append("mobile", basicDetails.phone); // Changed from phone to mobile
+      formData.append("mobile", basicDetails.phone);
       formData.append("designation", basicDetails.designation || "");
       formData.append("affiliation", basicDetails.affiliation || "");
       formData.append(
@@ -86,8 +88,8 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         fileUrl: string | null;
       }> = [];
 
-      // Check if we have file upload fields
-      let hasFileUpload = false;
+      // Track missing required files
+      const missingFiles: string[] = [];
 
       if (
         basicDetails.registrationCategory?.needAdditionalInfo &&
@@ -110,10 +112,17 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
 
           if (field.type === "upload") {
             if (file instanceof File) {
+              // ✅ Add file size validation (5MB max)
+              const maxSize = 5 * 1024 * 1024; // 5MB
+              if (file.size > maxSize) {
+                throw new Error(
+                  `File "${field.label}" exceeds 5MB limit. Please upload a smaller file.`
+                );
+              }
+
               // Add file to FormData - backend expects file_1, file_2, etc.
               const fileKey = `file_${fieldId}`;
               formData.append(fileKey, file);
-              hasFileUpload = true;
 
               // For upload fields, value should be null
               answerObj.value = null;
@@ -123,8 +132,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
               answerObj.value = fieldValue;
             } else {
               // No file provided for required upload field
-              toast.error(`File upload required for: ${field.label}`);
-              throw new Error(`File upload required for: ${field.label}`);
+              missingFiles.push(field.label);
             }
           } else if (field.type === "checkbox") {
             // Handle checkbox array
@@ -139,32 +147,17 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         }
       }
 
+      // ✅ Check for missing required files BEFORE making API call
+      if (missingFiles.length > 0) {
+        throw new Error(
+          `Please upload the following required files: ${missingFiles.join(
+            ", "
+          )}`
+        );
+      }
+
       // 3. Add additionalAnswers as JSON string
       formData.append("additionalAnswers", JSON.stringify(additionalAnswers));
-
-      // 4. Log for debugging
-      console.log("=== FORM DATA BEING SENT ===");
-      console.log("Has file upload:", hasFileUpload);
-      const formDataObj: Record<string, any> = {};
-      for (let [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          formDataObj[key] = {
-            name: value.name,
-            size: value.size,
-            type: value.type,
-          };
-        } else if (key === "additionalAnswers") {
-          try {
-            formDataObj[key] = JSON.parse(value as string);
-          } catch (e) {
-            formDataObj[key] = value;
-          }
-        } else {
-          formDataObj[key] = value;
-        }
-      }
-      // console.log("Complete FormData:", JSON.stringify(formDataObj, null, 2));
-      // console.log("=== END FORM DATA ===");
 
       // 5. Make API call with FormData (multipart/form-data)
       const token = localStorage.getItem("accessToken");
@@ -181,23 +174,47 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       );
 
       // 6. Handle response
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Backend error response:", errorData);
-
-        // Handle specific errors
-        if (errorData.message?.includes("already registered")) {
-          throw new Error("You are already registered for this event");
-        } else if (errorData.message?.includes("File upload required")) {
-          throw new Error(errorData.message);
-        } else {
-          throw new Error(
-            errorData.message || `Server error: ${response.status}`
-          );
-        }
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Backend error response:", result);
+
+        // ✅ Extract detailed error message from backend
+        let errorMessage = "Registration failed. Please try again.";
+
+        if (result.message) {
+          // Check for specific error types
+          if (typeof result.message === "string") {
+            errorMessage = result.message;
+
+            // Check for file-related errors
+            if (result.message.toLowerCase().includes("file")) {
+              if (result.message.toLowerCase().includes("size")) {
+                errorMessage = `File too large: ${result.message}`;
+              } else if (
+                result.message.toLowerCase().includes("type") ||
+                result.message.toLowerCase().includes("extension")
+              ) {
+                errorMessage = `Invalid file type: ${result.message}`;
+              } else if (result.message.toLowerCase().includes("required")) {
+                errorMessage = `File upload required: ${result.message}`;
+              }
+            } else if (
+              result.message.toLowerCase().includes("already registered")
+            ) {
+              errorMessage = "You are already registered for this event";
+            }
+          } else if (result.message.details) {
+            // Handle validation errors from backend
+            const errors = Object.values(result.message.details).join(", ");
+            errorMessage = `Validation error: ${errors}`;
+          }
+        } else if (result.error) {
+          errorMessage = result.error;
+        }
+
+        throw new Error(errorMessage);
+      }
 
       if (result.success) {
         const registrationId = result.data?._id;
@@ -208,6 +225,9 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
             ...basicDetails,
             registrationId: registrationId,
           });
+
+          // ✅ Clear localStorage draft if you have it
+          localStorage.removeItem(`registration-draft-${basicDetails.eventId}`);
 
           // Redirect to payment page
           router.push(
@@ -223,14 +243,22 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       console.error("Registration Error:", error);
 
       if (error instanceof Error) {
-        if (error.message.includes("File upload required")) {
-          toast.error(error.message);
+        // Show specific error messages with better formatting
+        const errorMsg = error.message;
+
+        if (
+          errorMsg.includes("File") ||
+          errorMsg.includes("upload") ||
+          errorMsg.includes("size") ||
+          errorMsg.includes("type")
+        ) {
+          toast.error(errorMsg, { duration: 5000 });
           // Go back to step 1 to fix the file upload
           onBack();
-        } else if (error.message.includes("already registered")) {
+        } else if (errorMsg.includes("already registered")) {
           toast.error("You are already registered for this event");
         } else {
-          toast.error(error.message || "Something went wrong");
+          toast.error(errorMsg || "Something went wrong");
         }
       } else {
         toast.error("An unexpected error occurred");

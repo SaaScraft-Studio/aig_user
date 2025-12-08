@@ -36,7 +36,6 @@
     "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "country-state-city": "^3.2.1",
-    "date-fns": "^2.30.0",
     "formidable": "^3.5.4",
     "html-to-image": "^1.11.13",
     "i18n-iso-countries": "^7.14.0",
