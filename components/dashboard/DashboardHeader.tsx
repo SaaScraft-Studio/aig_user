@@ -19,7 +19,6 @@ export function DashboardHeader({
   const router = useRouter();
   const { photo, fullName, email, setUser, clearUser } = useUserStore();
   const { currentEvent, setCurrentEvent } = useEventStore();
-  console.log("Current Event in Header:", currentEvent);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const eventIdFromUrl = searchParams.get("eventId");

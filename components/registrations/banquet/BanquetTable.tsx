@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatSingleDate } from "@/app/utils/formatEventDate";
+import { formatBanquetDate } from "@/app/utils/formatEventDate";
 import { SkeletonTable } from "@/components/common/skeleton-table";
 
 type BanquetRegistration = {
@@ -172,6 +172,7 @@ export default function BanquetTable({
         entry.banquetName.toLowerCase().includes(searchTerm)
       );
     })
+    // Update the sorting logic in the sorted array creation:
     .sort((a, b) => {
       if (sortBy === "name") {
         const nameA = (
@@ -190,8 +191,33 @@ export default function BanquetTable({
           ? nameA.localeCompare(nameB)
           : nameB.localeCompare(nameA);
       } else {
-        const dateA = new Date(a.banquetStartDate).getTime();
-        const dateB = new Date(b.banquetStartDate).getTime();
+        // Helper to parse date string to timestamp
+        const parseDateToTimestamp = (dateStr: string): number => {
+          if (!dateStr) return 0;
+
+          try {
+            // Try parsing as ISO date first
+            const isoDate = new Date(dateStr);
+            if (!isNaN(isoDate.getTime())) {
+              return isoDate.getTime();
+            }
+
+            // Try parsing DD/MM/YYYY format
+            if (dateStr.includes("/")) {
+              const [day, month, year] = dateStr.split("/").map(Number);
+              // Create date in YYYY-MM-DD format for reliable parsing
+              const date = new Date(year, month - 1, day);
+              return isNaN(date.getTime()) ? 0 : date.getTime();
+            }
+
+            return 0;
+          } catch {
+            return 0;
+          }
+        };
+
+        const dateA = parseDateToTimestamp(a.banquetStartDate);
+        const dateB = parseDateToTimestamp(b.banquetStartDate);
         return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
       }
     });
@@ -214,7 +240,8 @@ export default function BanquetTable({
   };
 
   const getPersonName = (entry: any) => {
-    if (entry.userId) return `${entry.userId.name} (Self)`;
+    if (entry.userId)
+      return `${entry.userId.fullName || entry.userId.name || "User"} (Self)`;
     if (entry.accompanyDetails)
       return `${entry.accompanyDetails.fullName} (Accompany)`;
     if (entry.otherName) return `${entry.otherName} (Other)`;
@@ -366,10 +393,10 @@ export default function BanquetTable({
                   key={`${entry.registrationId}-${entry._id}`}
                   className="hover:bg-gray-50/50"
                 >
-                  <TableCell className="font-medium text-gray-900">
+                  <TableCell className="font-sm text-gray-900">
                     {startIndex + index + 1}
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-sm">
                     {getPersonName(entry)}
                   </TableCell>
                   <TableCell className="font-sm">
@@ -387,10 +414,8 @@ export default function BanquetTable({
                   </TableCell> */}
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="fontsmedium text-gray-900">
-                        {entry.banquetStartDate
-                          ? formatSingleDate(entry.banquetStartDate)
-                          : "-"}
+                      <span className="font-sm text-gray-900">
+                        {formatBanquetDate(entry.banquetStartDate)}
                       </span>
                     </div>
                   </TableCell>
