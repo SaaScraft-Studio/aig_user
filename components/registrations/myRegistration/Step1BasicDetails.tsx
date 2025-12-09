@@ -26,6 +26,7 @@ import CountryStateCitySelect from "@/components/common/CountryStateCitySelect";
 import { useEventStore } from "@/app/store/useEventStore";
 import { medicalCouncils } from "@/app/data/medicalCouncils";
 import { formatValidTill } from "@/app/utils/formatEventDate";
+import { Info } from "lucide-react";
 
 // Base schema
 const baseSchema = z.object({
@@ -255,11 +256,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     }
 
     return (
-      <div className="mt-6 p-6 border rounded-lg">
-        <h3 className="text-lg font-semibold text-[#00509E] mb-4">
+      <div className="mt-6 p-6 border rounded-lg bg-white shadow-sm">
+        <h3 className="text-lg font-semibold text-[#00509E] mb-6 pb-2 border-b border-gray-200">
           Additional Information Required
         </h3>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {selectedCategory.additionalFields.map((field) => {
             const fieldKey = `additional_${field.id}`;
             const isRequired = ["textbox", "date", "radio", "upload"].includes(
@@ -267,147 +268,192 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             );
 
             return (
-              <div key={field.id} className="space-y-2">
-                <Label className="font-medium">
-                  {field.label}
-                  {isRequired && <span className="text-red-600"> *</span>}
-                </Label>
-                {field.type === "textbox" && (
-                  <Input
-                    {...register(fieldKey as any)}
-                    placeholder={`Enter ${field.label.toLowerCase()}`}
-                    className="bg-white"
-                  />
-                )}
-                {field.type === "date" && (
-                  <Input
-                    type="date"
-                    {...register(fieldKey as any)}
-                    className="bg-white"
-                  />
-                )}
-                {field.type === "radio" && field.options && (
-                  <div className="space-y-2">
-                    {field.options.map((option) => (
-                      <label
-                        key={option.id}
-                        className="flex items-center space-x-2 cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          value={option.label}
-                          {...register(fieldKey as any)}
-                          className="text-[#00509E]"
-                        />
-                        <span className="text-gray-700">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {field.type === "checkbox" && field.options && (
-                  <div className="space-y-2">
-                    {field.options.map((option) => (
-                      <label
-                        key={option.id}
-                        className="flex items-center space-x-2 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          value={option.label}
-                          onChange={(e) => {
-                            const currentValues = watch(fieldKey as any) || [];
-                            if (e.target.checked) {
-                              setValue(fieldKey as any, [
-                                ...currentValues,
-                                option.label,
-                              ]);
-                            } else {
-                              setValue(
-                                fieldKey as any,
-                                currentValues.filter(
-                                  (v: string) => v !== option.label
-                                )
-                              );
-                            }
-                          }}
-                          className="text-[#00509E] rounded"
-                        />
-                        <span className="text-gray-700">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {field.type === "upload" && (
-                  <div>
-                    <Input
-                      type="file"
-                      accept={`.${field.extension || "*"}`}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          // ✅ Client-side file validation
-                          const maxSize = 5 * 1024 * 1024; // 5MB
-
-                          // Check file size
-                          if (file.size > maxSize) {
-                            toast.error(
-                              `File "${field.label}" exceeds 5MB limit. Please choose a smaller file.`
-                            );
-                            e.target.value = ""; // Clear the input
-                            return;
-                          }
-
-                          // Check file extension if specified
-                          if (field.extension) {
-                            const allowedExtensions = field.extension
-                              .split(",")
-                              .map((ext) =>
-                                ext.trim().toLowerCase().replace(".", "")
-                              );
-                            const fileExtension = file.name
-                              .split(".")
-                              .pop()
-                              ?.toLowerCase();
-
-                            if (
-                              !fileExtension ||
-                              !allowedExtensions.includes(fileExtension)
-                            ) {
-                              toast.error(
-                                `File must be of type: ${field.extension}`
-                              );
-                              e.target.value = ""; // Clear the input
-                              return;
-                            }
-                          }
-
-                          setValue(fieldKey as any, file);
-
-                          // Show success message with file info
-                          const fileSizeKB = Math.round(file.size / 1024);
-                          const fileSizeMB = (
-                            file.size /
-                            (1024 * 1024)
-                          ).toFixed(2);
-                          toast.success(
-                            `"${file.name}" uploaded (${fileSizeKB} KB)`
-                          );
-                        }
-                      }}
-                      className="bg-white"
-                    />
-                    {field.extension && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Upload .{field.extension} file only (max 5MB)
-                      </p>
+              <div
+                key={field.id}
+                className="p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100/50 transition-colors"
+              >
+                <div className="space-y-3">
+                  {/* Field Label */}
+                  <div className="flex items-center justify-between">
+                    <Label className="font-medium text-gray-800">
+                      {field.label}
+                      {isRequired && (
+                        <span className="text-red-600 ml-1">*</span>
+                      )}
+                    </Label>
+                    {field.type === "upload" && field.extension && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        .{field.extension} only
+                      </span>
                     )}
                   </div>
-                )}
-                {(errors as any)[fieldKey] && (
-                  <p className="text-sm text-red-600">
-                    {(errors as any)[fieldKey]?.message as string}
-                  </p>
-                )}
+
+                  {/* Field Input */}
+                  {field.type === "textbox" && (
+                    <Input
+                      {...register(fieldKey as any)}
+                      placeholder={`Enter ${field.label.toLowerCase()}`}
+                      className="bg-white border-gray-300 focus:border-[#00509E]"
+                    />
+                  )}
+
+                  {field.type === "date" && (
+                    <Input
+                      type="date"
+                      {...register(fieldKey as any)}
+                      className="bg-white border-gray-300 focus:border-[#00509E]"
+                    />
+                  )}
+
+                  {field.type === "radio" && field.options && (
+                    <div className="space-y-2 bg-white p-3 rounded-md border border-gray-300">
+                      {field.options.map((option) => (
+                        <label
+                          key={option.id}
+                          className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded"
+                        >
+                          <input
+                            type="radio"
+                            value={option.label}
+                            {...register(fieldKey as any)}
+                            className="text-[#00509E] focus:ring-[#00509E]"
+                          />
+                          <span className="text-gray-700">{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {field.type === "checkbox" && field.options && (
+                    <div className="space-y-2 bg-white p-3 rounded-md border border-gray-300">
+                      {field.options.map((option) => (
+                        <label
+                          key={option.id}
+                          className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded"
+                        >
+                          <input
+                            type="checkbox"
+                            value={option.label}
+                            onChange={(e) => {
+                              const currentValues =
+                                watch(fieldKey as any) || [];
+                              if (e.target.checked) {
+                                setValue(fieldKey as any, [
+                                  ...currentValues,
+                                  option.label,
+                                ]);
+                              } else {
+                                setValue(
+                                  fieldKey as any,
+                                  currentValues.filter(
+                                    (v: string) => v !== option.label
+                                  )
+                                );
+                              }
+                            }}
+                            className="text-[#00509E] rounded focus:ring-[#00509E]"
+                          />
+                          <span className="text-gray-700">{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {field.type === "upload" && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            accept={`.${field.extension || "*"}`}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const maxSize = 5 * 1024 * 1024; // 5MB
+
+                                if (file.size > maxSize) {
+                                  toast.error(
+                                    `File "${field.label}" exceeds 5MB limit.`
+                                  );
+                                  e.target.value = "";
+                                  return;
+                                }
+
+                                if (field.extension) {
+                                  const allowedExtensions = field.extension
+                                    .split(",")
+                                    .map((ext) =>
+                                      ext.trim().toLowerCase().replace(".", "")
+                                    );
+                                  const fileExtension = file.name
+                                    .split(".")
+                                    .pop()
+                                    ?.toLowerCase();
+
+                                  if (
+                                    !fileExtension ||
+                                    !allowedExtensions.includes(fileExtension)
+                                  ) {
+                                    toast.error(
+                                      `File must be of type: ${field.extension}`
+                                    );
+                                    e.target.value = "";
+                                    return;
+                                  }
+                                }
+
+                                setValue(fieldKey as any, file);
+                                const fileSizeKB = Math.round(file.size / 1024);
+                                toast.success(
+                                  `"${file.name}" uploaded (${fileSizeKB} KB)`
+                                );
+                              }
+                            }}
+                            className="bg-white border-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span>Max file size: 5MB</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error Message */}
+                  {(errors as any)[fieldKey] && (
+                    <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md border border-red-200">
+                      <svg
+                        className="w-4 h-4 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span className="text-sm">
+                        {(errors as any)[fieldKey]?.message as string}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -875,12 +921,15 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value={JSON.stringify(cat)} id={cat._id} />
                   <div>
-                    <span className="font-medium">{cat.slabName}</span>
-                    {cat.needAdditionalInfo && (
-                      <p className="text-xs text-blue-600 mt-1">
-                        ⓘ Additional information required
-                      </p>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{cat.slabName}</span>
+                      {cat.needAdditionalInfo && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                          <Info className="h-3 w-3" />
+                          Additional info required
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
