@@ -98,28 +98,45 @@ export default function EventTabs() {
     return !!getUserRegistration(eventId);
   };
 
-  // Registered events (both current and past)
-  const registeredEvents = events.filter((event) =>
-    isUserRegistered(event._id)
+  // Categorize events
+  const registeredEvents = events.filter(
+    (event) => isUserRegistered(event._id) && !isEventPast(event)
   );
 
-  // Past events (all events that have ended)
+  const eventsToRegister = events.filter(
+    (event) => !isUserRegistered(event._id) && !isEventPast(event)
+  );
+
   const pastEvents = events.filter((event) => isEventPast(event));
 
   // Apply tab + search + filter
-  const filteredEvents = (
-    activeTab === "Registered"
-      ? registeredEvents
-      : activeTab === "Past"
-      ? pastEvents
-      : events
-  )
-    .filter((event) =>
-      event?.eventName?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .filter((event) =>
-      filterType === "All" ? true : event?.eventCategory === filterType
-    );
+  const getFilteredEvents = () => {
+    let tabEvents = [];
+
+    switch (activeTab) {
+      case "Registered":
+        tabEvents = registeredEvents;
+        break;
+      case "All":
+        tabEvents = eventsToRegister;
+        break;
+      case "Past":
+        tabEvents = pastEvents;
+        break;
+      default:
+        tabEvents = eventsToRegister;
+    }
+
+    return tabEvents
+      .filter((event) =>
+        event?.eventName?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .filter((event) =>
+        filterType === "All" ? true : event?.eventCategory === filterType
+      );
+  };
+
+  const filteredEvents = getFilteredEvents();
 
   // Get button text and action based on event status and registration
   const getEventButtonConfig = (event: any) => {
@@ -166,23 +183,40 @@ export default function EventTabs() {
     <section className="px-4 md:px-8 py-8">
       <h1 className="text-2xl font-semibold mb-4 text-[#00509E]">Events</h1>
 
-      {/* Tabs */}
+      {/* Tabs with counts */}
       <div className="flex gap-6 text-sm font-medium text-blue-900 border-b border-gray-200 mb-6">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={clsx(
-              "pb-2 transition-all cursor-pointer",
-              activeTab === tab
-                ? "border-b-2 border-blue-800 text-blue-900"
-                : "text-gray-500 hover:text-blue-800"
-            )}
-          >
-            {tab} {tab === "Registered" && `(${registeredEvents.length})`}
-            {tab === "Past" && `(${pastEvents.length})`}
-          </button>
-        ))}
+        {TABS.map((tab) => {
+          // Calculate count for each tab
+          let count = 0;
+          switch (tab) {
+            case "Registered":
+              count = registeredEvents.length;
+              break;
+            case "All":
+              count = eventsToRegister.length;
+              break;
+            case "Past":
+              count = pastEvents.length;
+              break;
+            default:
+              count = 0;
+          }
+
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={clsx(
+                "pb-2 transition-all cursor-pointer",
+                activeTab === tab
+                  ? "border-b-2 border-blue-800 text-blue-900"
+                  : "text-gray-500 hover:text-blue-800"
+              )}
+            >
+              {tab} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {/* Search + Filter */}
@@ -208,6 +242,20 @@ export default function EventTabs() {
         </Select>
       </div>
 
+      {/* Results Count */}
+      {!loading && filteredEvents.length > 0 && (
+        <div className="text-sm text-gray-500 mb-4">
+          Showing {filteredEvents.length} of{" "}
+          {activeTab === "Registered"
+            ? registeredEvents.length
+            : activeTab === "Past"
+            ? pastEvents.length
+            : eventsToRegister.length}{" "}
+          events
+          {(searchQuery || filterType !== "All") && " (filtered)"}
+        </div>
+      )}
+
       {/* Grid / Skeleton / No Results */}
       {loading ? (
         <SkeletonCard count={8} />
@@ -219,14 +267,16 @@ export default function EventTabs() {
               ? "Try adjusting your search or filter"
               : activeTab === "Registered"
               ? "You haven't registered for any events yet"
-              : "No events available at the moment"}
+              : activeTab === "All"
+              ? "No events available for registration"
+              : "No past events found"}
           </p>
           {activeTab === "Registered" && (
             <Button
               onClick={() => setActiveTab("All")}
               className="mt-4 bg-[#00509E] hover:bg-[#003B73]"
             >
-              Browse All Events
+              Browse Events to Register
             </Button>
           )}
         </div>
@@ -259,14 +309,6 @@ export default function EventTabs() {
                       target.style.display = "none";
                     }}
                   />
-
-                  {/* <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center hidden group-has-[img:failed]:flex">
-                    <div className="text-center text-gray-500">
-                      <CalendarDays className="w-12 h-12 mx-auto mb-2 text-blue-300" />
-                      <p className="text-sm font-medium">Event Image</p>
-                      <p className="text-xs">Not Available</p>
-                    </div>
-                  </div> */}
 
                   {/* Event Status Badge */}
                   <div className="absolute top-3 left-3">

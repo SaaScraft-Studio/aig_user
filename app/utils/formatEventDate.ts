@@ -81,7 +81,7 @@ export function formatValidTill(endDate?: string) {
     return `Valid till ${fmt.format(end)}`;
   }
 
-  return `Validity expired on ${fmt.format(end)}`;
+  return `valid till ${fmt.format(end)}`;
 }
 
 //for single dates
