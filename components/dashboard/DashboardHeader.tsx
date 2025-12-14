@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Menu, Loader2 } from "lucide-react";
+import { Menu, Loader2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserStore } from "@/app/store/useUserStore";
@@ -37,7 +37,7 @@ export function DashboardHeader({
         try {
           setLoadingEvent(true);
           const token = localStorage.getItem("accessToken");
-          
+
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventIdFromUrl}`,
             {
@@ -203,7 +203,7 @@ export function DashboardHeader({
         </Link>
         {/* Event Info */}
         {showEventInfo && (
-          <div className="hidden md:flex flex-col justify-center text-white ml-6 border-l border-white/30 pl-6">
+          <div className="hidden md:flex flex-col justify-center text-white ml-4 lg:ml-6 border-l border-white/30 pl-4 lg:pl-6">
             {loadingEvent ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -211,15 +211,48 @@ export function DashboardHeader({
               </div>
             ) : (
               <>
-                <h1 className="text-lg font-semibold leading-tight line-clamp-1">
+                <h1 className="text-base lg:text-lg font-semibold leading-tight line-clamp-1">
                   {currentEvent?.eventName}
                 </h1>
-                <p className="text-sm text-gray-200">
-                  {currentEvent &&
-                    formatEventDate(currentEvent.startDate, currentEvent.endDate)}
-                  {currentEvent?.startTime && ` | ${currentEvent.startTime}`}
-                  {currentEvent?.timeZone && ` ${currentEvent.timeZone}`}
-                </p>
+
+                {/* Single Line: Date | Address */}
+                <div className="flex items-center flex-wrap gap-x-2 text-xs lg:text-sm text-gray-200 mt-0.5">
+                  <span className="flex-shrink-0">
+                    {currentEvent &&
+                      formatEventDate(
+                        currentEvent.startDate,
+                        currentEvent.endDate
+                      )}
+                  </span>
+
+                  <span className="text-white/50">|</span>
+
+                  <span className="flex items-center gap-1.5 flex-shrink-0 truncate max-w-[180px] sm:max-w-[220px] lg:max-w-[700px]">
+                    <MapPin className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
+                    <span className="truncate">
+                      {/* {typeof currentEvent?.venueName === "string"
+                        ? currentEvent.venueName
+                        : currentEvent?.venueName?.venueName || "Venue TBA"} */}
+
+                      {/* Show venueAddress if it exists */}
+                      {typeof currentEvent?.venueName === "object" &&
+                        currentEvent?.venueName?.venueAddress &&
+                        `${currentEvent.venueName.venueAddress}`}
+
+                      {/* Show city if it exists (from venueName object) */}
+                      {/* {typeof currentEvent?.venueName === "object" &&
+                        currentEvent?.venueName?.city &&
+                        ` • ${currentEvent.venueName.city}`} */}
+
+                      {/* Show state if it exists (from venueName object) */}
+                      {/* {typeof currentEvent?.venueName === "object" &&
+                        currentEvent?.venueName?.state &&
+                        `${currentEvent?.venueName?.city ? ", " : " • "}${
+                          currentEvent.venueName.state
+                        }`} */}
+                    </span>
+                  </span>
+                </div>
               </>
             )}
           </div>
@@ -229,14 +262,14 @@ export function DashboardHeader({
       {/* Right: User Info + Logout */}
       <div className="flex items-center gap-4">
         {/* User Profile with Name */}
-        <div className="hidden md:flex flex-col items-end text-white">
+        {/* <div className="hidden md:flex flex-col items-end text-white">
           <span className="text-sm font-semibold leading-tight">
             {loadingProfile ? "Loading..." : fullName || "Welcome"}
           </span>
           <span className="text-xs text-gray-200 opacity-80">
             {loadingProfile ? "" : email || "User"}
           </span>
-        </div>
+        </div> */}
 
         {/* Avatar */}
         <Link href="/dashboard/profile" className="cursor-pointer">

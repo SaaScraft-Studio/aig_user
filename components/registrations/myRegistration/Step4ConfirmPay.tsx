@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRegistrationStore } from "@/app/store/useRegistrationStore";
 import { useEventStore } from "@/app/store/useEventStore";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,61 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+
+// Helper to format file size for display
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
+
+// Helper to get file icon
+const getFileIcon = (fileName: string): string => {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "pdf":
+      return "📄";
+    case "doc":
+    case "docx":
+      return "📝";
+    case "xls":
+    case "xlsx":
+      return "📊";
+    case "ppt":
+    case "pptx":
+      return "📈";
+    case "jpg":
+    case "jpeg":
+    case "png":
+    case "gif":
+    case "webp":
+    case "bmp":
+    case "svg":
+      return "🖼️";
+    case "mp3":
+    case "wav":
+    case "ogg":
+      return "🎵";
+    case "mp4":
+    case "avi":
+    case "mov":
+    case "wmv":
+      return "🎬";
+    case "zip":
+    case "rar":
+    case "7z":
+      return "📦";
+    case "txt":
+    case "csv":
+    case "json":
+      return "📄";
+    default:
+      return "📎";
+  }
+};
 
 export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
   const router = useRouter();
@@ -25,15 +80,8 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
   } = useRegistrationStore();
 
   const [loading, setLoading] = useState(false);
-  const [tempBasic, setTempBasic] = useState({ ...basicDetails });
-
-  useEffect(() => {
-    setTempBasic({ ...basicDetails });
-  }, [basicDetails]);
 
   const regAmount = basicDetails?.registrationCategory?.amount || 0;
-
-  // Replace the entire handleSubmit function in Step4ConfirmPay.tsx with this:
 
   const handleSubmit = async () => {
     if (
@@ -79,7 +127,57 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       formData.append("address", basicDetails.address || "");
       formData.append("pincode", basicDetails.pincode || "");
 
-      // 2. Prepare additionalAnswers for FormData
+      // 2. Prepare dynamic form answers for FormData
+      const dynamicFormAnswers: Array<{
+        id: string;
+        label: string;
+        type: string;
+        required: boolean;
+        value: any;
+        fileUrl: string | null;
+      }> = [];
+
+      if (basicDetails.dynamicFormAnswers?.length) {
+        for (const answer of basicDetails.dynamicFormAnswers) {
+          const file = basicDetails.dynamicFormFileUploads?.[answer.id];
+
+          const answerObj: any = {
+            id: answer.id,
+            label: answer.label,
+            type: answer.type,
+            required: answer.required,
+            value: null,
+            fileUrl: null,
+          };
+
+          if (answer.type === "input" && answer.inputTypes === "file") {
+            if (file instanceof File) {
+              // Add file to FormData - backend expects file_dyn_<id>
+              const fileKey = `file_dyn_${answer.id}`;
+              formData.append(fileKey, file);
+              answerObj.fileUrl = null;
+            } else {
+              answerObj.value = answer.value;
+            }
+          } else if (answer.type === "checkbox") {
+            answerObj.value = Array.isArray(answer.value)
+              ? answer.value.join(", ")
+              : answer.value;
+          } else {
+            answerObj.value = answer.value;
+          }
+
+          dynamicFormAnswers.push(answerObj);
+        }
+
+        // Add dynamic form answers as JSON string
+        formData.append(
+          "dynamicFormAnswers",
+          JSON.stringify(dynamicFormAnswers)
+        );
+      }
+
+      // 3. Prepare additionalAnswers for FormData (category additional fields)
       const additionalAnswers: Array<{
         id: number;
         label: string;
@@ -156,7 +254,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         );
       }
 
-      // 3. Add additionalAnswers as JSON string
+      // 4. Add additionalAnswers as JSON string
       formData.append("additionalAnswers", JSON.stringify(additionalAnswers));
 
       // 5. Make API call with FormData (multipart/form-data)
@@ -392,6 +490,78 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
                       );
                     }
                   )}
+                </div>
+              </div>
+            )}
+
+          {/* Display Dynamic Form Answers */}
+          {basicDetails.dynamicFormAnswers &&
+            basicDetails.dynamicFormAnswers.length > 0 && (
+              <div className="mt-6 pt-6 border-t">
+                <h4 className="font-semibold text-gray-700 mb-3">
+                  Additional Registration Information
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  {basicDetails.dynamicFormAnswers.map((answer) => {
+                    const file =
+                      basicDetails.dynamicFormFileUploads?.[answer.id];
+
+                    return (
+                      <div key={answer.id} className="space-y-1">
+                        <p className="text-gray-600 font-medium mb-1">
+                          {answer.label}
+                          {answer.required && (
+                            <span className="text-red-600 ml-1">*</span>
+                          )}
+                        </p>
+
+                        {answer.type === "input" &&
+                        answer.inputTypes === "file" ? (
+                          file instanceof File ? (
+                            <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                              <div className="text-blue-600">
+                                {getFileIcon(file.name)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {file.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {formatFileSize(file.size)} •{" "}
+                                  {file.name.split(".").pop()?.toUpperCase()}
+                                </p>
+                              </div>
+                              <span className="text-xs text-green-600 font-medium">
+                                Ready to upload
+                              </span>
+                            </div>
+                          ) : (
+                            <Input
+                              value="No file selected"
+                              disabled
+                              className="bg-gray-50"
+                            />
+                          )
+                        ) : answer.type === "checkbox" ? (
+                          <Input
+                            value={
+                              Array.isArray(answer.value)
+                                ? answer.value.join(", ")
+                                : String(answer.value || "Not provided")
+                            }
+                            disabled
+                            className="bg-gray-50"
+                          />
+                        ) : (
+                          <Input
+                            value={String(answer.value || "Not provided")}
+                            disabled
+                            className="bg-gray-50"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

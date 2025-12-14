@@ -1,4 +1,3 @@
-// app/(section)/registration/my-registration/page.tsx
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -27,8 +26,13 @@ type RegistrationSettings = {
 };
 
 function RegistrationContent() {
-  const { currentStep, setStep, updateBasicDetails, resetForm } =
-    useRegistrationStore();
+  const {
+    currentStep,
+    setStep,
+    updateBasicDetails,
+    resetForm,
+    setDynamicFormFields,
+  } = useRegistrationStore();
   const { events, currentEvent, setCurrentEvent, fetchEvents } =
     useEventStore();
   const searchParams = useSearchParams();
@@ -84,13 +88,14 @@ function RegistrationContent() {
       try {
         setLoading(true);
         setSettingsChecked(false);
-        // resetForm();
-        // setStep(1);
 
         if (eventIdFromUrl && !fromBadge) {
           resetForm();
           setStep(1);
         }
+
+        // ✅ NEW: Reset dynamic form fields when event changes
+        setDynamicFormFields([]);
 
         // Fetch events if not loaded
         if (!events.length) {
@@ -215,6 +220,7 @@ function RegistrationContent() {
     updateBasicDetails,
     resetForm,
     setStep,
+    setDynamicFormFields, // Add this
   ]);
 
   const goNext = () => setStep(Math.min(currentStep + 1, 2));
@@ -229,7 +235,6 @@ function RegistrationContent() {
   }
 
   // ✅ Show registration closed message if settings don't allow registration
-  // This will show at http://localhost:3000/registration/my-registration?eventId=68f11e420dc364ddba9adfb2
   if (
     settingsChecked &&
     (!registrationSettings ||

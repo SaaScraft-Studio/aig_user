@@ -64,23 +64,23 @@ export const Sidebar = ({
         {/* Sidebar Content */}
         <div className="flex flex-col h-full p-4 overflow-y-auto">
           {/* Mobile Close Button */}
-          <div className="flex items-center justify-between mb-6 lg:hidden">
-            <h2 className="text-lg font-semibold text-gray-800">Dashboard</h2>
-            <button
+          <div className="flex justify-end lg:hidden">
+            {/* <h2 className="text-lg font-semibold text-gray-800">Dashboard</h2> */}
+            {/* <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-blue-200 transition-colors text-gray-600 hover:text-gray-800"
+              className="p-2 rounded-lg hover:bg-blue-200 transition-colors text-gray-600 hover:text-gray-800 mt-2"
             >
               <X size={20} />
-            </button>
+            </button> */}
           </div>
 
           {/* Desktop Header */}
-          <div className="hidden lg:flex items-center justify-center mb-6 pt-2">
+          {/* <div className="hidden lg:flex items-center justify-center mb-6 pt-2">
             <h2 className="text-lg font-bold text-gray-800">Dashboard Menu</h2>
-          </div>
+          </div> */}
 
           {/* Navigation */}
-          <nav className="flex flex-col space-y-2 flex-1">
+          <nav className="flex flex-col space-y-2 flex-1 mt-6">
             {navItems.map(({ name, href, icon: Icon }) => (
               <Link
                 key={href}

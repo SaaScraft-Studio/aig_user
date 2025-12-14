@@ -81,7 +81,7 @@ export function formatValidTill(endDate?: string) {
     return `Valid till ${fmt.format(end)}`;
   }
 
-  return `Validity expired on ${fmt.format(end)}`;
+  return `valid till ${fmt.format(end)}`;
 }
 
 //for single dates
@@ -93,3 +93,50 @@ export function formatSingleDate(dateString: string) {
     year: "numeric",
   });
 }
+
+export const formatBanquetDate = (dateStr: string): string => {
+  if (!dateStr) return "-";
+
+  try {
+    // Check if it's already in a different format
+    if (dateStr.includes("-") || dateStr.includes("T")) {
+      // Try formatSingleDate for ISO or other formats
+      const formatted = formatSingleDate(dateStr);
+      if (formatted !== "Invalid Date") {
+        return formatted;
+      }
+    }
+
+    // Handle DD/MM/YYYY format specifically for banquet dates
+    if (dateStr.includes("/")) {
+      const [day, month, year] = dateStr
+        .split("/")
+        .map((num) => parseInt(num, 10));
+
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+
+      // Validate month (1-12)
+      if (month >= 1 && month <= 12) {
+        return `${day} ${monthNames[month - 1]} ${year}`;
+      }
+    }
+
+    return dateStr; // Return original if can't parse
+  } catch (error) {
+    console.error("Error formatting banquet date:", error);
+    return dateStr;
+  }
+};

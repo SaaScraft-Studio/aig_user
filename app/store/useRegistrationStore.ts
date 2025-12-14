@@ -1,4 +1,3 @@
-//app/store/useRegistrationStore.ts
 import { create } from "zustand";
 
 export interface AdditionalField {
@@ -23,19 +22,39 @@ export interface RegistrationCategory {
   AccompanyAmount?: number;
 }
 
-export interface AdditionalField {
-  id: number;
-  type: "textbox" | "date" | "radio" | "checkbox" | "upload";
+// NEW: Dynamic Form Field Interface
+export interface DynamicFormField {
+  id: string;
+  type: string;
   label: string;
-  extension?: string;
-  options?: Array<{
-    id: number;
-    label: string;
-  }>;
+  placeholder?: string;
+  inputTypes?: string;
+  required: boolean;
+  description?: string;
+  defaultValue?: any;
+  minLength?: number;
+  maxLength?: number;
+  maxFileSize?: number;
+  fileUploadTypes?: string;
+  options?: string[];
+  minSelected?: number;
+  maxSelected?: number;
+  value?: any;
 }
-// export type Gender = "Male" | "Female" | "Other";
-// export type MealPreference = "Veg" | "Non-Veg" | "Jain";
-// export type MealPreference = string; // now dynamic, not limited to 3
+
+// NEW: Dynamic Form Answer Interface
+export interface DynamicFormAnswer {
+  id: string;
+  label: string;
+  type: string;
+  required: boolean;
+  value: any;
+  fileUrl?: string | null;
+  inputTypes?: string;
+  options?: string[];
+  minSelected?: number;
+  maxSelected?: number;
+}
 
 // Main form type
 export type BasicDetails = {
@@ -57,7 +76,9 @@ export type BasicDetails = {
   mealPreference?: string;
   gender?: string;
   registrationCategory: RegistrationCategory;
-  additionalAnswers?: Record<string, any>; // Changed from additionalInfo
+  additionalAnswers?: Record<string, any>;
+  dynamicFormAnswers?: DynamicFormAnswer[]; // NEW
+  dynamicFormFileUploads?: Record<string, File>; // NEW
   fileUploads?: Record<string, File>;
   registrationId?: string;
   registrationSlabId?: string;
@@ -85,6 +106,7 @@ export type BadgeInfo = {
 type RegistrationState = {
   currentStep: number;
   basicDetails: BasicDetails;
+  dynamicFormFields: DynamicFormField[]; // NEW
   accompanyingPersons: AccompanyingPerson[];
   selectedWorkshops: string[];
   badgeInfo: BadgeInfo | null;
@@ -93,6 +115,9 @@ type RegistrationState = {
 
   setStep: (step: number) => void;
   updateBasicDetails: (data: Partial<BasicDetails>) => void;
+  setDynamicFormFields: (fields: DynamicFormField[]) => void; // NEW
+  updateDynamicFormAnswer: (id: string, value: any) => void; // NEW
+  setDynamicFormFileUpload: (id: string, file: File | null) => void; // NEW
   setAccompanyingPersons: (data: AccompanyingPerson[]) => void;
   skipAccompanyingPersons: () => void;
   setSelectedWorkshops: (workshops: string[]) => void;
@@ -121,30 +146,18 @@ const initialBasicDetails: BasicDetails = {
   mealPreference: "",
   gender: "",
   registrationCategory: undefined as any,
+  dynamicFormAnswers: [], // NEW
+  dynamicFormFileUploads: {}, // NEW
   registrationId: "",
 };
 
-export interface UserRegistration {
-  _id: string;
-  eventId: string;
-  eventName: string;
-  regNum: string;
-  isPaid: boolean;
-}
-
-interface UserRegistrationsState {
-  registrations: UserRegistration[];
-  fetchRegistrations: () => Promise<void>;
-}
-
-export const useRegistrationStore = create<RegistrationState>((set) => ({
+export const useRegistrationStore = create<RegistrationState>((set, get) => ({
   currentStep: 1,
   basicDetails: initialBasicDetails,
+  dynamicFormFields: [], // NEW
   accompanyingPersons: [],
   selectedWorkshops: [],
   badgeInfo: null,
-
-  // SKIP FLAGS INIT
   skippedAccompanying: false,
   skippedWorkshops: false,
 
@@ -154,6 +167,64 @@ export const useRegistrationStore = create<RegistrationState>((set) => ({
     set((state) => ({
       basicDetails: { ...state.basicDetails, ...data },
     })),
+
+  // NEW: Set dynamic form fields
+  setDynamicFormFields: (fields) => set({ dynamicFormFields: fields }),
+
+  // NEW: Update dynamic form answer
+  updateDynamicFormAnswer: (id, value) =>
+    set((state) => {
+      const existingAnswers = state.basicDetails.dynamicFormAnswers || [];
+      const existingIndex = existingAnswers.findIndex((a) => a.id === id);
+
+      let updatedAnswers;
+      if (existingIndex >= 0) {
+        updatedAnswers = [...existingAnswers];
+        updatedAnswers[existingIndex] = {
+          ...updatedAnswers[existingIndex],
+          value,
+        };
+      } else {
+        const field = state.dynamicFormFields.find((f) => f.id === id);
+        if (!field) return state;
+
+        updatedAnswers = [
+          ...existingAnswers,
+          {
+            id,
+            label: field.label,
+            type: field.type,
+            required: field.required,
+            value,
+          },
+        ];
+      }
+
+      return {
+        basicDetails: {
+          ...state.basicDetails,
+          dynamicFormAnswers: updatedAnswers,
+        },
+      };
+    }),
+
+  // NEW: Set dynamic form file upload
+  setDynamicFormFileUpload: (id, file) =>
+    set((state) => {
+      const currentUploads = state.basicDetails.dynamicFormFileUploads || {};
+      const updatedUploads = file
+        ? { ...currentUploads, [id]: file }
+        : Object.fromEntries(
+            Object.entries(currentUploads).filter(([key]) => key !== id)
+          );
+
+      return {
+        basicDetails: {
+          ...state.basicDetails,
+          dynamicFormFileUploads: updatedUploads,
+        },
+      };
+    }),
 
   setAccompanyingPersons: (data) =>
     set({ accompanyingPersons: data, skippedAccompanying: false }),
@@ -172,6 +243,7 @@ export const useRegistrationStore = create<RegistrationState>((set) => ({
     set({
       currentStep: 1,
       basicDetails: initialBasicDetails,
+      dynamicFormFields: [], // NEW
       accompanyingPersons: [],
       selectedWorkshops: [],
       badgeInfo: null,
@@ -180,20 +252,31 @@ export const useRegistrationStore = create<RegistrationState>((set) => ({
     }),
 }));
 
-// app/store/useRegistrationStore.ts
+// Existing User Registrations Store
+export interface UserRegistration {
+  _id: string;
+  eventId: string;
+  eventName: string;
+  regNum: string;
+  isPaid: boolean;
+}
+
+interface UserRegistrationsState {
+  registrations: UserRegistration[];
+  fetchRegistrations: () => Promise<void>;
+}
+
 export const useUserRegistrationsStore = create<UserRegistrationsState>(
   (set) => ({
     registrations: [],
     fetchRegistrations: async () => {
       try {
-        // Guard against server-side execution or missing `localStorage`
         const token =
           typeof window !== "undefined"
             ? localStorage.getItem("accessToken")
             : null;
 
         if (!token) {
-          // No token available (user not authenticated or running on server)
           set({ registrations: [] });
           return;
         }
@@ -217,7 +300,6 @@ export const useUserRegistrationsStore = create<UserRegistrationsState>(
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data)) {
-          // Transform the backend response to match our frontend structure
           const transformedRegistrations = data.data.map((reg: any) => ({
             _id: reg._id,
             eventId: reg.eventId?._id || reg.eventId,
