@@ -108,6 +108,7 @@ export default function BanquetTable({
       );
 
       const data = await response.json();
+      console.log("Fetched paid banquets:", data);
 
       if (data.success && Array.isArray(data.data)) {
         setBanquetRegistrations(data.data);
@@ -152,7 +153,7 @@ export default function BanquetTable({
       registrationId: reg._id,
       banquetName: reg.banquet.banquetslabName,
       eventName: reg.event.eventName,
-      regNum: reg.registration.regNum,
+      regNum: reg.registration?.regNum || "N/A",
       banquetStartDate: reg.banquet.startDate,
       banquetTime: reg.banquet.time,
       venue: reg.banquet.venue,
