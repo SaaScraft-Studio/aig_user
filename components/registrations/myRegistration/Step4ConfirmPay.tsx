@@ -391,11 +391,6 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
               { key: "email", label: "Email" },
               { key: "affiliation", label: "Affiliation" },
               { key: "designation", label: "Designation" },
-              {
-                key: "medicalCouncilRegistration",
-                label: "Medical Council Registration",
-              },
-              { key: "medicalCouncilState", label: "Medical Council State" },
               { key: "address", label: "Address", span: 2 },
               { key: "country", label: "Country" },
               { key: "state", label: "State" },

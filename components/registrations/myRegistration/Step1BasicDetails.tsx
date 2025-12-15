@@ -36,8 +36,6 @@ const baseSchema = z.object({
   email: z.string().email("Invalid email"),
   affiliation: z.string().min(1, "Affiliation is required"),
   designation: z.string().min(1, "Designation is required"),
-  medicalCouncilRegistration: z.string().min(1, "Registration is required"),
-  medicalCouncilState: z.string().min(1, "Medical Council State is required"),
   address: z.string().min(1, "Address is required"),
   country: z.string().min(1, "Country is required"),
   state: z.string().min(1, "State is required"),
@@ -72,8 +70,6 @@ const createDynamicSchema = (
     email: z.string().email("Invalid email"),
     affiliation: z.string().min(1, "Affiliation is required"),
     designation: z.string().min(1, "Designation is required"),
-    medicalCouncilRegistration: z.string().min(1, "Registration is required"),
-    medicalCouncilState: z.string().min(1, "Medical Council State is required"),
     address: z.string().min(1, "Address is required"),
     country: z.string().min(1, "Country is required"),
     state: z.string().min(1, "State is required"),
@@ -950,18 +946,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           <Input {...register("designation")} />
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Medical Council Registration</Label>
-          <Input {...register("medicalCouncilRegistration")} />
-          {errors.medicalCouncilRegistration && (
-            <p className="text-sm text-red-600">
-              {typeof errors.medicalCouncilRegistration.message === "string"
-                ? errors.medicalCouncilRegistration.message
-                : "This field is required"}
-            </p>
-          )}
-        </div>
-
         {/* ✅ Updated Meal Preference Section */}
         <div className="space-y-1.5">
           <Label>
@@ -1016,49 +1000,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           )}
           {loadingMeals && (
             <p className="text-sm text-blue-600">Loading meal preferences...</p>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>
-            Medical Council State <span className="text-red-600">*</span>
-          </Label>
-
-          {!basicDetails.medicalCouncilState ||
-          basicDetails.medicalCouncilState.trim() === "" ? (
-            // ✅ Show dropdown if no prefilled value
-            <Controller
-              name="medicalCouncilState"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || ""}
-                >
-                  <SelectTrigger className="w-full cursor-pointer">
-                    <SelectValue placeholder="Select Medical Council" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {medicalCouncils.map((council) => (
-                      <SelectItem key={council} value={council}>
-                        {council}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          ) : (
-            // ✅ Show text input if profile already has a council value
-            <Input {...register("medicalCouncilState")} />
-          )}
-
-          {errors.medicalCouncilState && (
-            <p className="text-sm text-red-600">
-              {typeof errors.medicalCouncilState.message === "string"
-                ? errors.medicalCouncilState.message
-                : "This field is required"}
-            </p>
           )}
         </div>
 
