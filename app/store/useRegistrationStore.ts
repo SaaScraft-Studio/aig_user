@@ -22,66 +22,88 @@ export interface RegistrationCategory {
   AccompanyAmount?: number;
 }
 
-// NEW: Dynamic Form Field Interface
+// FIXED: Dynamic Form Field Interface to match backend
 export interface DynamicFormField {
   id: string;
-  type: string;
+  type: string; // Backend expects: "input", "textarea", "select", "radio", "checkbox", "date", "file"
   label: string;
   placeholder?: string;
-  inputTypes?: string;
+  inputTypes?: string; // For "input" type: "text", "email", "number", "file"
   required: boolean;
   description?: string;
   defaultValue?: any;
   minLength?: number;
   maxLength?: number;
   maxFileSize?: number;
-  fileUploadTypes?: string;
+  fileUploadTypes?: string; // e.g., ".pdf,.doc,.docx"
   options?: string[];
   minSelected?: number;
   maxSelected?: number;
   value?: any;
 }
 
-// NEW: Dynamic Form Answer Interface
+// FIXED: Dynamic Form Answer Interface to match backend expectations
 export interface DynamicFormAnswer {
   id: string;
   label: string;
-  type: string;
+  type: string; // Must match field.type (backend expects "file" for file uploads)
   required: boolean;
   value: any;
   fileUrl?: string | null;
+  // These are optional for frontend only
   inputTypes?: string;
   options?: string[];
   minSelected?: number;
   maxSelected?: number;
 }
 
-// Main form type
+// FIXED: Main form type to match backend field names
 export type BasicDetails = {
+  // Event info
   eventId: any;
   eventName: any;
+
+  // Personal details (matching backend field names)
   prefix?: string;
-  fullName: string;
+  fullName: string; // Frontend uses fullName, but backend expects "name"
   email: string;
-  phone: string;
+  phone: string; // Frontend uses phone, but backend expects "mobile"
+
+  // Professional details
   affiliation?: string;
   designation?: string;
   medicalCouncilRegistration: string;
   medicalCouncilState?: string;
+
+  // Address details
   address?: string;
   country: string;
   state?: string;
   city?: string;
   pincode?: string;
+
+  acceptedTerms?: boolean;
+
+  // Preferences
   mealPreference?: string;
   gender?: string;
+
+  // Registration details
   registrationCategory: RegistrationCategory;
-  additionalAnswers?: Record<string, any>;
-  dynamicFormAnswers?: DynamicFormAnswer[]; // NEW
-  dynamicFormFileUploads?: Record<string, File>; // NEW
-  fileUploads?: Record<string, File>;
   registrationId?: string;
   registrationSlabId?: string;
+
+  // Additional fields
+  additionalAnswers?: Record<string, any>;
+  fileUploads?: Record<string, File>; // For category additional upload fields
+
+  // Dynamic form fields
+  dynamicFormAnswers?: DynamicFormAnswer[];
+  dynamicFormFileUploads?: Record<string, File>; // Files for dynamic form
+
+  // Frontend only - for mapping
+  _name?: string; // For mapping fullName -> name
+  _mobile?: string; // For mapping phone -> mobile
 };
 
 // Accompanying person type
@@ -106,7 +128,7 @@ export type BadgeInfo = {
 type RegistrationState = {
   currentStep: number;
   basicDetails: BasicDetails;
-  dynamicFormFields: DynamicFormField[]; // NEW
+  dynamicFormFields: DynamicFormField[];
   accompanyingPersons: AccompanyingPerson[];
   selectedWorkshops: string[];
   badgeInfo: BadgeInfo | null;
@@ -115,15 +137,22 @@ type RegistrationState = {
 
   setStep: (step: number) => void;
   updateBasicDetails: (data: Partial<BasicDetails>) => void;
-  setDynamicFormFields: (fields: DynamicFormField[]) => void; // NEW
-  updateDynamicFormAnswer: (id: string, value: any) => void; // NEW
-  setDynamicFormFileUpload: (id: string, file: File | null) => void; // NEW
+  setDynamicFormFields: (fields: DynamicFormField[]) => void;
+  updateDynamicFormAnswer: (id: string, value: any, fileUrl?: string) => void; // UPDATED
+  setDynamicFormFileUpload: (id: string, file: File | null) => void;
   setAccompanyingPersons: (data: AccompanyingPerson[]) => void;
   skipAccompanyingPersons: () => void;
   setSelectedWorkshops: (workshops: string[]) => void;
   skipWorkshops: () => void;
   setBadgeInfo: (info: BadgeInfo) => void;
   resetForm: () => void;
+
+  // NEW: Helper to get backend-compatible data
+  getBackendCompatibleDetails: () => {
+    name: string;
+    mobile: string;
+    [key: string]: any;
+  };
 };
 
 // ✅ Initial values
@@ -146,15 +175,17 @@ const initialBasicDetails: BasicDetails = {
   mealPreference: "",
   gender: "",
   registrationCategory: undefined as any,
-  dynamicFormAnswers: [], // NEW
-  dynamicFormFileUploads: {}, // NEW
+  dynamicFormAnswers: [],
+  dynamicFormFileUploads: {},
+  fileUploads: {},
+  additionalAnswers: {},
   registrationId: "",
 };
 
 export const useRegistrationStore = create<RegistrationState>((set, get) => ({
   currentStep: 1,
   basicDetails: initialBasicDetails,
-  dynamicFormFields: [], // NEW
+  dynamicFormFields: [],
   accompanyingPersons: [],
   selectedWorkshops: [],
   badgeInfo: null,
@@ -168,14 +199,17 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
       basicDetails: { ...state.basicDetails, ...data },
     })),
 
-  // NEW: Set dynamic form fields
+  // Set dynamic form fields
   setDynamicFormFields: (fields) => set({ dynamicFormFields: fields }),
 
-  // NEW: Update dynamic form answer
-  updateDynamicFormAnswer: (id, value) =>
+  // UPDATED: Update dynamic form answer with fileUrl support
+  updateDynamicFormAnswer: (id, value, fileUrl) =>
     set((state) => {
       const existingAnswers = state.basicDetails.dynamicFormAnswers || [];
       const existingIndex = existingAnswers.findIndex((a) => a.id === id);
+
+      // Find the field definition
+      const field = state.dynamicFormFields.find((f) => f.id === id);
 
       let updatedAnswers;
       if (existingIndex >= 0) {
@@ -183,21 +217,35 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
         updatedAnswers[existingIndex] = {
           ...updatedAnswers[existingIndex],
           value,
+          ...(fileUrl !== undefined && { fileUrl }),
         };
       } else {
-        const field = state.dynamicFormFields.find((f) => f.id === id);
         if (!field) return state;
 
-        updatedAnswers = [
-          ...existingAnswers,
-          {
-            id,
-            label: field.label,
-            type: field.type,
-            required: field.required,
-            value,
-          },
-        ];
+        const newAnswer: DynamicFormAnswer = {
+          id,
+          label: field.label,
+          type: field.type,
+          required: field.required,
+          value,
+          fileUrl: fileUrl || null,
+        };
+
+        // Add additional properties based on field type
+        if (field.type === "input") {
+          newAnswer.inputTypes = field.inputTypes;
+        }
+        if (field.options) {
+          newAnswer.options = field.options;
+        }
+        if (field.minSelected !== undefined) {
+          newAnswer.minSelected = field.minSelected;
+        }
+        if (field.maxSelected !== undefined) {
+          newAnswer.maxSelected = field.maxSelected;
+        }
+
+        updatedAnswers = [...existingAnswers, newAnswer];
       }
 
       return {
@@ -208,7 +256,7 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
       };
     }),
 
-  // NEW: Set dynamic form file upload
+  // Set dynamic form file upload
   setDynamicFormFileUpload: (id, file) =>
     set((state) => {
       const currentUploads = state.basicDetails.dynamicFormFileUploads || {};
@@ -218,9 +266,23 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
             Object.entries(currentUploads).filter(([key]) => key !== id)
           );
 
+      // Also update the answer value if needed
+      const existingAnswers = state.basicDetails.dynamicFormAnswers || [];
+      const answerIndex = existingAnswers.findIndex((a) => a.id === id);
+
+      let updatedAnswers = [...existingAnswers];
+      if (answerIndex >= 0) {
+        updatedAnswers[answerIndex] = {
+          ...updatedAnswers[answerIndex],
+          value: file ? null : updatedAnswers[answerIndex].value,
+          fileUrl: null, // Clear fileUrl when file is removed
+        };
+      }
+
       return {
         basicDetails: {
           ...state.basicDetails,
+          dynamicFormAnswers: updatedAnswers,
           dynamicFormFileUploads: updatedUploads,
         },
       };
@@ -243,16 +305,30 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
     set({
       currentStep: 1,
       basicDetails: initialBasicDetails,
-      dynamicFormFields: [], // NEW
+      dynamicFormFields: [],
       accompanyingPersons: [],
       selectedWorkshops: [],
       badgeInfo: null,
       skippedAccompanying: false,
       skippedWorkshops: false,
     }),
+
+  // NEW: Helper to get backend-compatible data
+  getBackendCompatibleDetails: () => {
+    const state = get();
+    const details = state.basicDetails;
+
+    return {
+      // Map frontend field names to backend field names
+      name: details.fullName,
+      mobile: details.phone,
+      // Keep all other fields as-is
+      ...details,
+    };
+  },
 }));
 
-// Existing User Registrations Store
+// Existing User Registrations Store (unchanged)
 export interface UserRegistration {
   _id: string;
   eventId: string;

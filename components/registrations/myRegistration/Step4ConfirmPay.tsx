@@ -18,68 +18,14 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-// Helper to get file icon
-const getFileIcon = (fileName: string): string => {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-
-  switch (extension) {
-    case "pdf":
-      return "📄";
-    case "doc":
-    case "docx":
-      return "📝";
-    case "xls":
-    case "xlsx":
-      return "📊";
-    case "ppt":
-    case "pptx":
-      return "📈";
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "webp":
-    case "bmp":
-    case "svg":
-      return "🖼️";
-    case "mp3":
-    case "wav":
-    case "ogg":
-      return "🎵";
-    case "mp4":
-    case "avi":
-    case "mov":
-    case "wmv":
-      return "🎬";
-    case "zip":
-    case "rar":
-    case "7z":
-      return "📦";
-    case "txt":
-    case "csv":
-    case "json":
-      return "📄";
-    default:
-      return "📎";
-  }
-};
-
 export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
   const router = useRouter();
   const { currentEvent } = useEventStore();
 
-  const {
-    basicDetails,
-    accompanyingPersons,
-    selectedWorkshops,
-    updateBasicDetails,
-    setAccompanyingPersons,
-    setSelectedWorkshops,
-    skippedAccompanying,
-    skippedWorkshops,
-  } = useRegistrationStore();
+  const { basicDetails, updateBasicDetails } = useRegistrationStore();
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const regAmount = basicDetails?.registrationCategory?.amount || 0;
 
@@ -98,13 +44,17 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
 
     try {
       setLoading(true);
+      setError(null);
 
       // Create FormData for file uploads
       const formData = new FormData();
 
       const registrationSlabId = basicDetails.registrationCategory._id;
-      // 1. Add all basic fields as text
-      formData.append("registrationSlabId", registrationSlabId);
+
+      // 1. Add registrationSlabId to query params
+      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${basicDetails.eventId}/register?registrationSlabId=${registrationSlabId}`;
+
+      // 2. Add all basic fields as text
       formData.append("prefix", basicDetails.prefix || "");
       formData.append("name", basicDetails.fullName);
       formData.append("gender", basicDetails.gender || "");
@@ -127,7 +77,9 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       formData.append("address", basicDetails.address || "");
       formData.append("pincode", basicDetails.pincode || "");
 
-      // 2. Prepare dynamic form answers for FormData
+      // In handleSubmit function, update the dynamic form processing:
+
+      // 3. Prepare dynamic form answers (Additional Registration Information)
       const dynamicFormAnswers: Array<{
         id: string;
         label: string;
@@ -137,38 +89,78 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         fileUrl: string | null;
       }> = [];
 
+      // Track dynamic form files that need to be uploaded
+      const dynamicFilesToUpload: Record<string, File> = {};
+
       if (basicDetails.dynamicFormAnswers?.length) {
+        console.log(
+          "Raw dynamic form answers from store:",
+          basicDetails.dynamicFormAnswers
+        );
         for (const answer of basicDetails.dynamicFormAnswers) {
           const file = basicDetails.dynamicFormFileUploads?.[answer.id];
+
+          console.log(`Processing dynamic answer ${answer.id}:`, {
+            answerValue: answer.value,
+            answerType: answer.type,
+            hasFile: !!file,
+            fileType: file?.constructor?.name,
+          });
 
           const answerObj: any = {
             id: answer.id,
             label: answer.label,
             type: answer.type,
             required: answer.required,
-            value: null,
+            value: null, // Default to null
             fileUrl: null,
           };
 
-          if (answer.type === "input" && answer.inputTypes === "file") {
+          // Check if this is a file upload field
+          const isFileField =
+            answer.type === "file" ||
+            (answer.type === "input" && answer.inputTypes === "file");
+
+          if (isFileField) {
             if (file instanceof File) {
-              // Add file to FormData - backend expects file_dyn_<id>
-              const fileKey = `file_dyn_${answer.id}`;
-              formData.append(fileKey, file);
+              // File needs to be uploaded
+              dynamicFilesToUpload[answer.id] = file;
+              answerObj.value = null; // NULL for file fields
               answerObj.fileUrl = null;
-            } else {
+            } else if (answer.value && typeof answer.value === "string") {
+              // Existing file URL (when editing existing registration)
               answerObj.value = answer.value;
+              answerObj.fileUrl = answer.value;
+            } else {
+              // No file - check if required (backend will validate)
+              answerObj.value = null; // Still NULL
+              answerObj.fileUrl = null;
             }
           } else if (answer.type === "checkbox") {
             answerObj.value = Array.isArray(answer.value)
-              ? answer.value.join(", ")
-              : answer.value;
+              ? answer.value
+              : [answer.value].filter(Boolean);
           } else {
-            answerObj.value = answer.value;
+            // For text fields
+            answerObj.value = answer.value || "";
+          }
+
+          // Add additional properties if they exist
+          if (answer.inputTypes) {
+            answerObj.inputTypes = answer.inputTypes;
+          }
+          if (answer.options) {
+            answerObj.options = answer.options;
           }
 
           dynamicFormAnswers.push(answerObj);
         }
+
+        // Add dynamic form files to FormData if any
+        Object.entries(dynamicFilesToUpload).forEach(([fieldId, file]) => {
+          const fileKey = `file_dyn_${fieldId}`;
+          formData.append(fileKey, file);
+        });
 
         // Add dynamic form answers as JSON string
         formData.append(
@@ -177,7 +169,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         );
       }
 
-      // 3. Prepare additionalAnswers for FormData (category additional fields)
+      // 4. Prepare additionalAnswers (Registration Slab Additional Info)
       const additionalAnswers: Array<{
         id: number;
         label: string;
@@ -210,34 +202,25 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
 
           if (field.type === "upload") {
             if (file instanceof File) {
-              // ✅ Add file size validation (5MB max)
-              const maxSize = 5 * 1024 * 1024; // 5MB
-              if (file.size > maxSize) {
-                throw new Error(
-                  `File "${field.label}" exceeds 5MB limit. Please upload a smaller file.`
-                );
-              }
-
-              // Add file to FormData - backend expects file_1, file_2, etc.
+              // Add file to FormData - backend expects file_<id>
               const fileKey = `file_${fieldId}`;
               formData.append(fileKey, file);
-
-              // For upload fields, value should be null
               answerObj.value = null;
               answerObj.fileUrl = null;
-            } else if (fieldValue) {
-              // If editing existing registration with already uploaded file
+            } else if (fieldValue && typeof fieldValue === "string") {
+              // Existing file URL
               answerObj.value = fieldValue;
+              answerObj.fileUrl = fieldValue;
             } else {
-              // No file provided for required upload field
-              missingFiles.push(field.label);
+              // Check if file is required (validate later in backend)
+              answerObj.value = null;
+              answerObj.fileUrl = null;
             }
           } else if (field.type === "checkbox") {
-            // Handle checkbox array
-            const value = Array.isArray(fieldValue) ? fieldValue : [];
-            answerObj.value = value.join(", ");
+            answerObj.value = Array.isArray(fieldValue)
+              ? fieldValue.join(", ")
+              : fieldValue || "";
           } else {
-            // For textbox, date, radio fields
             answerObj.value = fieldValue || "";
           }
 
@@ -245,70 +228,78 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         }
       }
 
-      // ✅ Check for missing required files BEFORE making API call
-      if (missingFiles.length > 0) {
-        throw new Error(
-          `Please upload the following required files: ${missingFiles.join(
-            ", "
-          )}`
-        );
-      }
-
-      // 4. Add additionalAnswers as JSON string
+      // Add additionalAnswers as JSON string
       formData.append("additionalAnswers", JSON.stringify(additionalAnswers));
 
-      // 5. Make API call with FormData (multipart/form-data)
+      console.log("Form submission details:", {
+        url,
+        registrationSlabId,
+        hasDynamicFiles: Object.keys(dynamicFilesToUpload).length,
+        hasSlabFiles: additionalAnswers.filter((a) => a.type === "upload")
+          .length,
+        totalFiles:
+          Object.keys(dynamicFilesToUpload).length +
+          additionalAnswers.filter((a) => a.type === "upload").length,
+      });
+
+      // 5. Make API call with FormData
       const token = localStorage.getItem("accessToken");
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${basicDetails.eventId}/register?registrationSlabId=${basicDetails.registrationCategory._id}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
       // 6. Handle response
-      const result = await response.json();
+      let result;
+      try {
+        const text = await response.text();
+
+        // Check if response is HTML (error page)
+        if (
+          text.trim().startsWith("<!DOCTYPE") ||
+          text.trim().startsWith("<html")
+        ) {
+          console.error(
+            "Server returned HTML error page:",
+            text.substring(0, 500)
+          );
+          throw new Error("Server error: Please try again later.");
+        }
+
+        // Try to parse as JSON
+        try {
+          result = JSON.parse(text);
+        } catch (parseError) {
+          console.error("Failed to parse response as JSON:", text);
+          throw new Error("Invalid server response");
+        }
+      } catch (parseError) {
+        throw new Error("Failed to process server response");
+      }
 
       if (!response.ok) {
         console.error("Backend error response:", result);
 
-        // ✅ Extract detailed error message from backend
         let errorMessage = "Registration failed. Please try again.";
 
-        if (result.message) {
-          // Check for specific error types
-          if (typeof result.message === "string") {
-            errorMessage = result.message;
-
-            // Check for file-related errors
-            if (result.message.toLowerCase().includes("file")) {
-              if (result.message.toLowerCase().includes("size")) {
-                errorMessage = `File too large: ${result.message}`;
-              } else if (
-                result.message.toLowerCase().includes("type") ||
-                result.message.toLowerCase().includes("extension")
-              ) {
-                errorMessage = `Invalid file type: ${result.message}`;
-              } else if (result.message.toLowerCase().includes("required")) {
-                errorMessage = `File upload required: ${result.message}`;
-              }
-            } else if (
-              result.message.toLowerCase().includes("already registered")
-            ) {
-              errorMessage = "You are already registered for this event";
-            }
-          } else if (result.message.details) {
-            // Handle validation errors from backend
-            const errors = Object.values(result.message.details).join(", ");
-            errorMessage = `Validation error: ${errors}`;
-          }
-        } else if (result.error) {
+        if (result?.message) {
+          errorMessage = result.message;
+        } else if (result?.error) {
           errorMessage = result.error;
+        }
+
+        // Check for specific file upload errors
+        if (
+          errorMessage.toLowerCase().includes("file") ||
+          errorMessage.toLowerCase().includes("upload") ||
+          errorMessage.toLowerCase().includes("required")
+        ) {
+          // Go back to fix file uploads
+          onBack();
         }
 
         throw new Error(errorMessage);
@@ -318,19 +309,20 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         const registrationId = result.data?._id;
 
         if (registrationId) {
-          // Update store with the registration ID if needed
+          // Update store with the registration ID
           updateBasicDetails({
             ...basicDetails,
             registrationId: registrationId,
           });
 
-          // ✅ Clear localStorage draft if you have it
+          // Clear localStorage draft
           localStorage.removeItem(`registration-draft-${basicDetails.eventId}`);
 
           // Redirect to payment page
           router.push(
             `/registration/payment?registrationId=${registrationId}&eventId=${basicDetails.eventId}`
           );
+          toast.success("Registration created successfully!");
         } else {
           throw new Error("No registration ID received");
         }
@@ -339,24 +331,21 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       }
     } catch (error) {
       console.error("Registration Error:", error);
+      setError(error instanceof Error ? error.message : "An error occurred");
 
       if (error instanceof Error) {
-        // Show specific error messages with better formatting
         const errorMsg = error.message;
 
         if (
           errorMsg.includes("File") ||
           errorMsg.includes("upload") ||
-          errorMsg.includes("size") ||
-          errorMsg.includes("type")
+          errorMsg.includes("required") ||
+          errorMsg.includes("size")
         ) {
           toast.error(errorMsg, { duration: 5000 });
-          // Go back to step 1 to fix the file upload
           onBack();
-        } else if (errorMsg.includes("already registered")) {
-          toast.error("You are already registered for this event");
         } else {
-          toast.error(errorMsg || "Something went wrong");
+          toast.error(errorMsg);
         }
       } else {
         toast.error("An unexpected error occurred");
@@ -369,21 +358,28 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto p-6 space-y-8">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+            {error}
+          </div>
+        )}
+
         {/* Basic Details */}
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-[#00509E] border-b-2 border-[#00509E] pb-1">
+        <section className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-[#00509E]">
               Basic Details
             </h3>
             <Button
-              className="bg-[#00509E] hover:bg-[#003B73] text-white transition-all duration-200 cursor-pointer"
+              variant="outline"
               size="sm"
               onClick={() => onBack()}
+              className="cursor-pointer"
             >
               ✎ Edit
             </Button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { key: "prefix", label: "Prefix" },
               { key: "fullName", label: "Full Name" },
@@ -400,7 +396,9 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
               { key: "gender", label: "Gender" },
             ].map(({ key, label, span }) => (
               <div key={key} className={span === 2 ? "sm:col-span-2" : ""}>
-                <p className="text-gray-600 font-medium mb-1">{label}</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">
+                  {label}
+                </p>
                 <Input
                   value={(basicDetails as any)[key] || ""}
                   disabled
@@ -411,7 +409,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
 
             {/* Registration Category Display */}
             <div className="sm:col-span-2">
-              <p className="text-gray-600 font-medium mb-1">
+              <p className="text-sm font-medium text-gray-600 mb-1">
                 Registration Category
               </p>
               <Input
@@ -419,17 +417,19 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
                   basicDetails.registrationCategory?.slabName || "Not selected"
                 }
                 disabled
-                className="bg-gray-50 font-semibold"
+                className="bg-gray-50 font-medium"
               />
             </div>
 
             {/* Registration Amount Display */}
             <div>
-              <p className="text-gray-600 font-medium mb-1">Registration Fee</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">
+                Registration Fee
+              </p>
               <Input
                 value={`₹ ${regAmount.toLocaleString("en-IN")}.00`}
                 disabled
-                className="bg-gray-50 font-semibold text-green-600"
+                className="bg-gray-50 font-medium text-green-600"
               />
             </div>
           </div>
@@ -437,11 +437,11 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
           {/* Display Additional Answers */}
           {basicDetails.additionalAnswers &&
             Object.keys(basicDetails.additionalAnswers).length > 0 && (
-              <div className="mt-6 pt-6 border-t">
-                <h4 className="font-semibold text-gray-700 mb-3">
+              <div className="mt-8 pt-8 border-t">
+                <h4 className="font-semibold text-gray-800 mb-4">
                   Additional Information
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {basicDetails.registrationCategory?.additionalFields?.map(
                     (field) => {
                       const value =
@@ -451,22 +451,17 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
 
                       return (
                         <div key={field.id}>
-                          <p className="text-gray-600 font-medium mb-1">
+                          <p className="text-sm font-medium text-gray-600 mb-1">
                             {field.label}
-                            {field.type === "upload" && file && (
-                              <span className="text-green-600 text-xs ml-2">
-                                ✓ File attached
-                              </span>
-                            )}
                           </p>
                           {field.type === "upload" && file instanceof File ? (
                             <div className="flex items-center gap-2">
                               <Input
                                 value={file.name}
                                 disabled
-                                className="bg-gray-50 flex-1"
+                                className="bg-gray-50"
                               />
-                              <span className="text-xs text-gray-500">
+                              <span className="text-sm text-gray-500">
                                 ({Math.round(file.size / 1024)} KB)
                               </span>
                             </div>
@@ -492,44 +487,42 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
           {/* Display Dynamic Form Answers */}
           {basicDetails.dynamicFormAnswers &&
             basicDetails.dynamicFormAnswers.length > 0 && (
-              <div className="mt-6 pt-6 border-t">
-                <h4 className="font-semibold text-gray-700 mb-3">
+              <div className="mt-8 pt-8 border-t">
+                <h4 className="font-semibold text-gray-800 mb-4">
                   Additional Registration Information
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {basicDetails.dynamicFormAnswers.map((answer) => {
                     const file =
                       basicDetails.dynamicFormFileUploads?.[answer.id];
 
                     return (
-                      <div key={answer.id} className="space-y-1">
-                        <p className="text-gray-600 font-medium mb-1">
+                      <div key={answer.id}>
+                        <p className="text-sm font-medium text-gray-600 mb-1">
                           {answer.label}
                           {answer.required && (
                             <span className="text-red-600 ml-1">*</span>
                           )}
                         </p>
 
-                        {answer.type === "input" &&
-                        answer.inputTypes === "file" ? (
+                        {answer.type === "file" ? (
                           file instanceof File ? (
-                            <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
-                              <div className="text-blue-600">
-                                {getFileIcon(file.name)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {file.name}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {formatFileSize(file.size)} •{" "}
-                                  {file.name.split(".").pop()?.toUpperCase()}
-                                </p>
-                              </div>
-                              <span className="text-xs text-green-600 font-medium">
-                                Ready to upload
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={file.name}
+                                disabled
+                                className="bg-gray-50"
+                              />
+                              <span className="text-sm text-gray-500">
+                                ({formatFileSize(file.size)})
                               </span>
                             </div>
+                          ) : answer.value ? (
+                            <Input
+                              value="File uploaded previously"
+                              disabled
+                              className="bg-gray-50"
+                            />
                           ) : (
                             <Input
                               value="No file selected"
@@ -563,11 +556,11 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         </section>
 
         {/* Order Summary */}
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-[#00509E] border-b-2 border-[#00509E] pb-1 mb-4">
+        <section className="space-y-4">
+          <h3 className="text-lg font-semibold text-[#00509E]">
             Order Summary
           </h3>
-          <div className="text-sm space-y-3">
+          <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-700">
                 {currentEvent?.eventName
@@ -577,25 +570,19 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
                     }`
                   : basicDetails?.registrationCategory?.slabName ||
                     "Registration"}
-
-                {!skippedAccompanying && accompanyingPersons.length > 0 && (
-                  <span className="text-gray-500 text-xs ml-2">
-                    + {accompanyingPersons.length} accompanying person(s)
-                  </span>
-                )}
               </span>
               <span className="font-semibold">
                 ₹ {regAmount.toLocaleString("en-IN")}.00
               </span>
             </div>
 
-            <hr className="my-3" />
-
-            <div className="flex justify-between items-center font-semibold text-base">
-              <span className="text-gray-900">Total Amount</span>
-              <span className="text-green-600">
-                ₹ {regAmount.toLocaleString("en-IN")}.00
-              </span>
+            <div className="border-t pt-3">
+              <div className="flex justify-between items-center font-semibold text-lg">
+                <span className="text-gray-900">Total Amount</span>
+                <span className="text-green-600">
+                  ₹ {regAmount.toLocaleString("en-IN")}.00
+                </span>
+              </div>
             </div>
           </div>
         </section>
@@ -605,7 +592,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-[#00509E] hover:bg-[#003B73] text-white transition-all duration-200 px-8 py-3 text-lg min-w-40 cursor-pointer"
+            className="bg-[#00509E] hover:bg-[#003B73] text-white px-8 py-3 text-lg min-w-40 cursor-pointer"
             size="lg"
           >
             {loading ? (
@@ -617,7 +604,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
               "Confirm & Pay"
             )}
           </Button>
-          <p className="text-xs text-gray-500 mt-3">
+          <p className="text-sm text-gray-500 mt-3">
             You will be redirected to secure payment page
           </p>
         </div>
