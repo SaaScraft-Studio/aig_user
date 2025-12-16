@@ -1037,12 +1037,12 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold text-green-600">
+                <div className="text-right space-y-2">
+                  <div className="text-[20px] font-semibold text-green-600">
                     ₹ {cat.amount.toLocaleString("en-IN")}.00
                   </div>
                   {cat.endDate && (
-                    <div className="text-sm text-gray-500">
+                    <div className="text-[12px] text-gray-500 font-medium">
                       {formatValidTill(cat.endDate)}
                     </div>
                   )}
