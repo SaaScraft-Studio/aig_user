@@ -23,6 +23,7 @@ interface Props {
   showCity?: boolean;
   showPincode?: boolean;
   editing?: boolean;
+  className?: string;
 }
 
 export default function CountryStateCitySelect({
@@ -35,15 +36,16 @@ export default function CountryStateCitySelect({
   showCity = true,
   showPincode = true,
   editing = false,
+  className = "",
 }: Props) {
   const country = watch("country");
   const state = watch("state");
 
   return (
-    <>
+    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${className}`}>
       {/* Country */}
       {showCountry && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             Country <span className="text-red-600">*</span>
           </Label>
@@ -80,7 +82,7 @@ export default function CountryStateCitySelect({
 
       {/* State */}
       {showState && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             State <span className="text-red-600">*</span>
           </Label>
@@ -118,7 +120,7 @@ export default function CountryStateCitySelect({
 
       {/* City */}
       {showCity && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             City <span className="text-red-600">*</span>
           </Label>
@@ -182,6 +184,6 @@ export default function CountryStateCitySelect({
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }

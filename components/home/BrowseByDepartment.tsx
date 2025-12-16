@@ -111,9 +111,9 @@ export default function BrowseByDepartment() {
     <section className="px-4 md:px-12 py-12 bg-white">
       {/* Top Row: Heading + Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-[#00509E]">
+        {/* <h2 className="text-2xl md:text-3xl font-bold text-[#00509E]">
           Browse By Department
-        </h2>
+        </h2> */}
 
         <div className="flex gap-4">
           <Select onValueChange={(value) => setSelectedDept(value)}>

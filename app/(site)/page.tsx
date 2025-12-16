@@ -4,7 +4,7 @@ import BrowseByDepartment from "@/components/home/BrowseByDepartment";
 import HeroSection from "@/components/home/HeroSection";
 // import UpcomingCMEs from "@/components/home/UpcomingCMEs";
 // import UpcomingConferences from "@/components/home/UpcomingConferences";
-import UpcomingEventsSection from "@/components/home/UpcomingEventsSection";
+// import UpcomingEventsSection from "@/components/home/UpcomingEventsSection";
 // import UpcomingWorkshops from "@/components/home/UpcomingWorkshops";
 import React from "react";
 
@@ -19,7 +19,7 @@ export default function HomePage() {
         <BrowseByDepartment />
       </section>
 
-      <UpcomingEventsSection
+      {/* <UpcomingEventsSection
         title="Upcoming Conferences"
         eventCategory="Conference"
         limit={4}
@@ -33,7 +33,7 @@ export default function HomePage() {
         title="Upcoming CMEs"
         eventCategory="CME"
         limit={4}
-      />
+      /> */}
 
       {/* <section id="cmes" className="scroll-mt-20">
         <UpcomingCMEs />

@@ -5,6 +5,7 @@ import { Controller, useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AdditionalField,
   RegistrationCategory,
   useRegistrationStore,
 } from "@/app/store/useRegistrationStore";
@@ -25,62 +26,38 @@ import CountryStateCitySelect from "@/components/common/CountryStateCitySelect";
 import { useEventStore } from "@/app/store/useEventStore";
 import { medicalCouncils } from "@/app/data/medicalCouncils";
 import { formatValidTill } from "@/app/utils/formatEventDate";
-import { Info } from "lucide-react";
+import { ChevronDownIcon, Info } from "lucide-react";
 import DynamicFormSection from "./DynamicFormSection";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
-// Base schema
-const baseSchema = z.object({
-  prefix: z.string().min(1, "Prefix is required"),
-  fullName: z.string().min(1, "Full Name is required"),
-  phone: z.string().regex(/^\d{10}$/, { message: "Mobile must be 10 digits" }),
-  email: z.string().email("Invalid email"),
-  affiliation: z.string().min(1, "Affiliation is required"),
-  designation: z.string().min(1, "Designation is required"),
-  medicalCouncilRegistration: z.string().min(1, "Registration is required"),
-  medicalCouncilState: z.string().min(1, "Medical Council State is required"),
-  address: z.string().min(1, "Address is required"),
-  country: z.string().min(1, "Country is required"),
-  state: z.string().min(1, "State is required"),
-  city: z.string().min(1, "City is required"),
-  pincode: z.string().min(1, "Pincode is required"),
-  gender: z.string().min(1, "Gender is required"),
-  mealPreference: z.string().min(1, "Please select a meal preference"),
-  acceptedTerms: z.boolean().refine((v) => v === true, {
-    message: "You must accept the terms and conditions",
-  }),
-  registrationCategory: z.object({
-    _id: z.string(),
-    slabName: z.string(),
-    amount: z.number(),
-    needAdditionalInfo: z.boolean().optional(),
-    additionalFields: z.array(z.any()).optional(),
-  }),
-});
-
-// Function to create dynamic schema
+// Update createDynamicSchema function:
 const createDynamicSchema = (
   category: RegistrationCategory | null,
   dynamicFormFields: any[]
 ) => {
-  // Base schema for all registrations
-  const schemaFields: any = {
+  const schemaFields: Record<string, z.ZodTypeAny> = {
     prefix: z.string().min(1, "Prefix is required"),
-    fullName: z.string().min(1, "Full Name is required"),
-    phone: z
+    name: z.string().min(1, "Full Name is required"),
+    gender: z.string().min(1, "Gender is required"),
+    email: z.string().email("Invalid email"),
+    mobile: z
       .string()
       .regex(/^\d{10}$/, { message: "Mobile must be 10 digits" }),
-    email: z.string().email("Invalid email"),
-    affiliation: z.string().min(1, "Affiliation is required"),
     designation: z.string().min(1, "Designation is required"),
+    affiliation: z.string().min(1, "Affiliation is required"),
     medicalCouncilRegistration: z.string().min(1, "Registration is required"),
     medicalCouncilState: z.string().min(1, "Medical Council State is required"),
-    address: z.string().min(1, "Address is required"),
-    country: z.string().min(1, "Country is required"),
-    state: z.string().min(1, "State is required"),
-    city: z.string().min(1, "City is required"),
-    pincode: z.string().min(1, "Pincode is required"),
-    gender: z.string().min(1, "Gender is required"),
     mealPreference: z.string().min(1, "Please select a meal preference"),
+    country: z.string().min(1, "Country is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    address: z.string().min(1, "Address is required"),
+    pincode: z.string().min(1, "Pincode is required"),
     acceptedTerms: z.boolean().refine((v) => v === true, {
       message: "You must accept the terms and conditions",
     }),
@@ -98,24 +75,12 @@ const createDynamicSchema = (
     category.additionalFields.forEach((field) => {
       const fieldKey = `additional_${field.id}`;
 
-      switch (field.type) {
-        case "textbox":
-        case "date":
-        case "radio":
-          schemaFields[fieldKey] = z
-            .string()
-            .min(1, `${field.label} is required`);
-          break;
-        case "checkbox":
-          schemaFields[fieldKey] = z
-            .array(z.string())
-            .min(1, `Please select at least one option for ${field.label}`);
-          break;
-        case "upload":
-          schemaFields[fieldKey] = z.any().optional();
-          break;
-        default:
-          schemaFields[fieldKey] = z.string().optional();
+      if (field.type === "upload") {
+        schemaFields[fieldKey] = z.any().optional();
+      } else if (field.type === "checkbox") {
+        schemaFields[fieldKey] = z.array(z.string()).optional();
+      } else {
+        schemaFields[fieldKey] = z.string().optional();
       }
     });
   }
@@ -124,56 +89,22 @@ const createDynamicSchema = (
   dynamicFormFields.forEach((field) => {
     const fieldKey = `dynamic_${field.id}`;
 
-    const answer: Record<string, any> = {
-      id: field.id,
-      label: field.label,
-      type: field.type,
-      required: field.required,
-    };
+    // Check for file fields (both type: "file" and type: "input" with inputTypes: "file")
+    const isFileField =
+      field.type === "file" ||
+      (field.type === "input" && field.inputTypes === "file");
 
-    if (field.required) {
-      switch (field.type) {
-        case "input":
-          if (field.inputTypes === "file") {
-            schemaFields[fieldKey] = z.any().refine(
-              (val) => {
-                if (!val) return false;
-                if (val instanceof File) return true;
-                return false;
-              },
-              { message: `${field.label} is required` }
-            );
-          } else {
-            schemaFields[fieldKey] = z
-              .string()
-              .min(1, `${field.label} is required`);
-          }
-          break;
-
-        case "checkbox":
-          schemaFields[fieldKey] = z
-            .array(z.string())
-            .min(
-              field.minSelected || 1,
-              `Please select at least ${field.minSelected || 1} option(s) for ${
-                field.label
-              }`
-            );
-          if (field.maxSelected) {
-            schemaFields[fieldKey] = schemaFields[fieldKey].max(
-              field.maxSelected,
-              `Maximum ${field.maxSelected} selections allowed for ${field.label}`
-            );
-          }
-          break;
-
-        default:
-          schemaFields[fieldKey] = z
-            .string()
-            .min(1, `${field.label} is required`);
-      }
-    } else {
+    if (isFileField) {
+      // Skip Zod validation for file fields
       schemaFields[fieldKey] = z.any().optional();
+    } else if (field.type === "checkbox") {
+      schemaFields[fieldKey] = field.required
+        ? z.array(z.string()).min(1, `${field.label} is required`)
+        : z.array(z.string()).optional();
+    } else {
+      schemaFields[fieldKey] = field.required
+        ? z.string().min(1, `${field.label} is required`)
+        : z.string().optional();
     }
   });
 
@@ -226,29 +157,44 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
   } = useForm<FormDataType>({
     resolver: zodResolver(dynamicSchema),
     defaultValues: {
-      ...basicDetails,
-      ...(basicDetails.additionalAnswers || {}),
-      ...Object.fromEntries(
-        (basicDetails.dynamicFormAnswers || []).map((answer) => [
-          `dynamic_${answer.id}`,
-          answer.value,
-        ])
-      ),
+      // Note: Backend expects "name" not "fullName"
+      name: basicDetails.fullName || "",
+      prefix: basicDetails.prefix || "",
+      gender: basicDetails.gender || "",
+      email: basicDetails.email || "",
+      mobile: basicDetails.phone || "", // Backend expects "mobile"
+      designation: basicDetails.designation || "",
+      affiliation: basicDetails.affiliation || "",
+      medicalCouncilRegistration: basicDetails.medicalCouncilRegistration || "",
+      medicalCouncilState: basicDetails.medicalCouncilState || "",
+      mealPreference: basicDetails.mealPreference || "",
+      country: basicDetails.country || "",
+      city: basicDetails.city || "",
+      state: basicDetails.state || "",
+      address: basicDetails.address || "",
+      pincode: basicDetails.pincode || "",
+      acceptedTerms: basicDetails.acceptedTerms || false,
+      registrationCategory: basicDetails.registrationCategory || null,
     } as any,
   });
 
-  // Prefill form
+  // Prefill form - CORRECTED
   useEffect(() => {
-    const defaultValues: any = { ...basicDetails };
+    const defaultValues: any = {
+      ...basicDetails,
+      // Map frontend field names to backend field names
+      name: basicDetails.fullName || "",
+      mobile: basicDetails.phone || "",
+    };
 
-    // Add additional answers to form values
+    // Add additional answers
     if (basicDetails.additionalAnswers) {
       Object.entries(basicDetails.additionalAnswers).forEach(([key, value]) => {
         defaultValues[`additional_${key}`] = value;
       });
     }
 
-    // Add dynamic form answers to form values
+    // Add dynamic form answers
     if (basicDetails.dynamicFormAnswers) {
       basicDetails.dynamicFormAnswers.forEach((answer) => {
         defaultValues[`dynamic_${answer.id}`] = answer.value;
@@ -273,7 +219,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     setDynamicSchema(newSchema);
   };
 
-  // Fetch dynamic form on event change
+  // Fetch dynamic form - FIXED
   useEffect(() => {
     const fetchDynamicForm = async () => {
       if (!currentEvent?._id) return;
@@ -290,11 +236,37 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           }
         );
 
-        if (response.ok) {
+        if (!response.ok) {
+          console.error("Failed to fetch dynamic form:", response.status);
+          return;
+        }
+
+        // Clone the response before parsing
+        const responseClone = response.clone();
+
+        try {
           const data = await response.json();
+
           if (data.success && data.data?.fields) {
-            setDynamicFormFields(data.data.fields);
+            // Ensure fields have correct type mapping
+            const transformedFields = data.data.fields.map((field: any) => {
+              // IMPORTANT: Check for input with file type
+              if (field.type === "input" && field.inputTypes === "file") {
+                return {
+                  ...field,
+                  type: "file", // Convert to "file" type
+                };
+              }
+              return field;
+            });
+
+            setDynamicFormFields(transformedFields);
           }
+        } catch (jsonError) {
+          console.error("Failed to parse JSON:", jsonError);
+          // Try to read as text to see what the response is
+          const text = await responseClone.text();
+          console.error("Response text:", text.substring(0, 500));
         }
       } catch (error) {
         console.error("Error fetching dynamic form:", error);
@@ -307,89 +279,136 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     fetchDynamicForm();
   }, [currentEvent?._id, setDynamicFormFields]);
 
-  // In Step1BasicDetails.tsx - in the onSubmit function
   const onSubmit: SubmitHandler<FormDataType> = (data) => {
     const additionalAnswers: Record<string, any> = {};
     const fileUploads: Record<string, File> = {};
 
+    // Process category additional fields
     if (data.registrationCategory?.needAdditionalInfo) {
-      Object.keys(data).forEach((key) => {
-        if (key.startsWith("additional_")) {
-          const fieldId = key.replace("additional_", "");
-          const value = (data as any)[key];
+      const category = data.registrationCategory;
 
-          // Check if it's a file
-          if (value instanceof File) {
-            fileUploads[fieldId] = value;
-            additionalAnswers[fieldId] = null; // Store null for file fields
+      if (category.additionalFields?.length) {
+        category.additionalFields.forEach((field: AdditionalField) => {
+          const fieldKey = `additional_${field.id}`;
+          const value = (data as any)[fieldKey];
+
+          if (field.type === "upload") {
+            if (value instanceof File) {
+              fileUploads[field.id.toString()] = value;
+              additionalAnswers[field.id.toString()] = ""; // Empty string for file
+            } else if (typeof value === "string" && value) {
+              additionalAnswers[field.id.toString()] = value;
+            } else {
+              additionalAnswers[field.id.toString()] = "";
+            }
+          } else if (field.type === "checkbox") {
+            // FIX: Checkbox fields should always be arrays
+            if (Array.isArray(value)) {
+              additionalAnswers[field.id.toString()] = value;
+            } else if (typeof value === "string") {
+              // Single checkbox value (not common but possible)
+              additionalAnswers[field.id.toString()] = [value];
+            } else {
+              additionalAnswers[field.id.toString()] = [];
+            }
+          } else if (field.type === "radio") {
+            // Radio buttons return single value
+            additionalAnswers[field.id.toString()] = value || "";
           } else {
-            additionalAnswers[fieldId] = value;
+            // Textbox, date, etc.
+            additionalAnswers[field.id.toString()] = value || "";
           }
-        }
-      });
+        });
+      }
     }
 
+    // Process dynamic form fields
     const dynamicFormAnswers: any[] = [];
     const dynamicFileUploads: Record<string, File> = {};
 
     dynamicFormFields.forEach((field) => {
       const fieldKey = `dynamic_${field.id}`;
       const value = (data as any)[fieldKey];
-      const file = basicDetails.dynamicFormFileUploads?.[field.id];
+      const existingFile = basicDetails.dynamicFormFileUploads?.[field.id];
 
       const answer: Record<string, any> = {
         id: field.id,
         label: field.label,
-        type: field.type,
+        type: field.type, // Keep original type
         required: field.required,
-        value: null,
-        fileUrl: null,
+        value: "", // CHANGED: Default to empty string
+        fileUrl: "",
       };
 
-      // Handle different field types
-      if (field.type === "input" && field.inputTypes === "file") {
-        if (file instanceof File) {
-          dynamicFileUploads[field.id] = file;
-          answer.value = null;
-          answer.fileUrl = null;
+      // Check if it's a file field (both formats)
+      const isFileField =
+        field.type === "file" ||
+        (field.type === "input" && field.inputTypes === "file");
+
+      if (isFileField) {
+        if (existingFile instanceof File) {
+          dynamicFileUploads[field.id] = existingFile;
+          answer.value = ""; // CHANGED: Empty string for file
+          answer.fileUrl = ""; // CHANGED: Empty string
+        } else if (value && typeof value === "string") {
+          answer.value = value;
+          answer.fileUrl = value;
         } else {
-          answer.value = value || "";
-          answer.fileUrl = null;
+          answer.value = ""; // CHANGED: Empty string
+          answer.fileUrl = ""; // CHANGED: Empty string
         }
       } else if (field.type === "checkbox") {
-        answer.value = Array.isArray(value) ? value : value || [];
-        answer.fileUrl = null;
+        answer.value = Array.isArray(value) ? value : [value].filter(Boolean);
       } else {
         answer.value = value || "";
-        answer.fileUrl = null;
       }
 
-      // Add inputTypes for file fields
-      if (field.type === "input") {
+      // Add inputTypes for input fields
+      if (field.inputTypes) {
         answer.inputTypes = field.inputTypes;
       }
-
-      // Add options for select, radio, checkbox
-      if (
-        field.options &&
-        ["select", "radio", "checkbox"].includes(field.type)
-      ) {
+      if (field.options) {
         answer.options = field.options;
       }
 
       dynamicFormAnswers.push(answer);
     });
 
+    // Verify no File objects
+    const hasFileObjects = dynamicFormAnswers.some(
+      (answer) => answer.value instanceof File
+    );
+    if (hasFileObjects) {
+      console.error("ERROR: File objects in dynamicFormAnswers!");
+    }
+
     // Save to store
     updateBasicDetails({
-      ...data,
+      ...basicDetails,
+      fullName: data.name,
+      phone: data.mobile,
+      prefix: data.prefix,
+      gender: data.gender,
+      email: data.email,
+      designation: data.designation,
+      affiliation: data.affiliation,
+      medicalCouncilRegistration: data.medicalCouncilRegistration,
+      medicalCouncilState: data.medicalCouncilState,
+      mealPreference: data.mealPreference,
+      country: data.country,
+      city: data.city,
+      state: data.state,
+      address: data.address,
+      pincode: data.pincode,
+      acceptedTerms: data.acceptedTerms,
+      registrationCategory: data.registrationCategory,
       additionalAnswers,
       fileUploads,
-      dynamicFormAnswers, // Add dynamic form answers
-      dynamicFormFileUploads: dynamicFileUploads, // Add dynamic form files
+      dynamicFormAnswers,
+      dynamicFormFileUploads: dynamicFileUploads,
       eventId: currentEvent?._id || "",
       eventName: currentEvent?.eventName || "",
-    } as any);
+    });
 
     toast.success("Details saved!");
     onNext();
@@ -400,7 +419,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     setValue("registrationCategory", category);
     updateDynamicSchema(category);
 
-    // Clear previous additional answers when category changes
+    // Clear previous additional answers
     if (category?.needAdditionalInfo && category.additionalFields) {
       category.additionalFields.forEach((field) => {
         const fieldKey = `additional_${field.id}`;
@@ -413,54 +432,14 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     }
   };
 
-  // Add handler for dynamic form file uploads
+  // Fixed file upload handler
   const handleDynamicFileUpload = (id: string, file: File | null) => {
     setDynamicFormFileUpload(id, file);
-
-    if (file) {
-      // Validate file extension if field has restrictions
-      const field = dynamicFormFields.find((f) => f.id === id);
-      if (field?.fileUploadTypes) {
-        const allowedExtensions = field.fileUploadTypes
-          .split(",")
-          .map((ext) => ext.trim().toLowerCase());
-
-        const fileExtension = file.name.split(".").pop()?.toLowerCase();
-
-        if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
-          toast.error(
-            `File type not allowed. Allowed: ${field.fileUploadTypes}`
-          );
-          removeFile(id);
-          return;
-        }
-      }
-
-      // Validate file size
-      if (field?.maxFileSize) {
-        const maxSizeBytes = field.maxFileSize * 1024 * 1024;
-        if (file.size > maxSizeBytes) {
-          toast.error(`File size exceeds ${field.maxFileSize}MB limit`);
-          removeFile(id);
-          return;
-        }
-      }
-
-      // Update form value
-      setValue(`dynamic_${id}`, file);
-    } else {
-      setValue(`dynamic_${id}`, null);
-    }
+    // Set form value to null, NOT the File object
+    setValue(`dynamic_${id}`, null, { shouldValidate: true });
   };
 
-  const removeFile = (id: string) => {
-    setDynamicFormFileUpload(id, null);
-    setValue(`dynamic_${id}`, null);
-    const fileInput = document.getElementById(`file-${id}`) as HTMLInputElement;
-    if (fileInput) fileInput.value = "";
-  };
-
-  // Render additional fields
+  // Render additional fields - SIMPLIFIED UI
   const renderAdditionalFields = () => {
     if (
       !selectedCategory?.needAdditionalInfo ||
@@ -470,80 +449,99 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     }
 
     return (
-      <div className="mt-6 p-6 border rounded-lg bg-white shadow-sm">
-        <h3 className="text-lg font-semibold text-[#00509E] mb-6 pb-2 border-b border-gray-200">
-          Additional Information Required
-        </h3>
-        <div className="space-y-6">
-          {selectedCategory.additionalFields.map((field) => {
-            const fieldKey = `additional_${field.id}`;
-            const isRequired = ["textbox", "date", "radio", "upload"].includes(
-              field.type
-            );
+      <div className="mt-8 space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold text-[#00509E] mb-4">
+            Additional Information Required
+          </h3>
+          <div className="space-y-4">
+            {selectedCategory.additionalFields.map((field) => {
+              const fieldKey = `additional_${field.id}`;
+              const isRequired = [
+                "textbox",
+                "date",
+                "radio",
+                "upload",
+              ].includes(field.type);
 
-            return (
-              <div
-                key={field.id}
-                className="p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100/50 transition-colors"
-              >
-                <div className="space-y-3">
-                  {/* Field Label */}
-                  <div className="flex items-center justify-between">
-                    <Label className="font-medium text-gray-800">
-                      {field.label}
-                      {isRequired && (
-                        <span className="text-red-600 ml-1">*</span>
-                      )}
-                    </Label>
-                    {field.type === "upload" && field.extension && (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                        .{field.extension} only
-                      </span>
-                    )}
-                  </div>
+              return (
+                <div key={field.id} className="space-y-2">
+                  <Label className="font-medium">
+                    {field.label}
+                    {isRequired && <span className="text-red-600 ml-1">*</span>}
+                  </Label>
 
-                  {/* Field Input */}
                   {field.type === "textbox" && (
                     <Input
                       {...register(fieldKey as any)}
                       placeholder={`Enter ${field.label.toLowerCase()}`}
-                      className="bg-white border-gray-300 focus:border-[#00509E]"
                     />
                   )}
 
                   {field.type === "date" && (
-                    <Input
-                      type="date"
-                      {...register(fieldKey as any)}
-                      className="bg-white border-gray-300 focus:border-[#00509E]"
-                    />
+                    <div className="space-y-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between font-normal"
+                          >
+                            {watch(fieldKey as any)
+                              ? new Date(
+                                  watch(fieldKey as any)
+                                ).toLocaleDateString()
+                              : "Select date"}
+                            <ChevronDownIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              watch(fieldKey as any)
+                                ? new Date(watch(fieldKey as any))
+                                : undefined
+                            }
+                            captionLayout="dropdown"
+                            onSelect={(date) => {
+                              setValue(
+                                fieldKey as any,
+                                date?.toISOString().split("T")[0] || ""
+                              );
+                            }}
+                            fromYear={1900}
+                            toYear={new Date().getFullYear()}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   )}
 
                   {field.type === "radio" && field.options && (
-                    <div className="space-y-2 bg-white p-3 rounded-md border border-gray-300">
+                    <div className="space-y-2">
                       {field.options.map((option) => (
                         <label
                           key={option.id}
-                          className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded"
+                          className="flex items-center space-x-2"
                         >
                           <input
                             type="radio"
                             value={option.label}
                             {...register(fieldKey as any)}
-                            className="text-[#00509E] focus:ring-[#00509E]"
+                            className="text-[#00509E]"
                           />
-                          <span className="text-gray-700">{option.label}</span>
+                          <span>{option.label}</span>
                         </label>
                       ))}
                     </div>
                   )}
 
                   {field.type === "checkbox" && field.options && (
-                    <div className="space-y-2 bg-white p-3 rounded-md border border-gray-300">
+                    <div className="space-y-2">
                       {field.options.map((option) => (
                         <label
                           key={option.id}
-                          className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded"
+                          className="flex items-center space-x-2"
                         >
                           <input
                             type="checkbox"
@@ -551,6 +549,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                             onChange={(e) => {
                               const currentValues =
                                 watch(fieldKey as any) || [];
+
                               if (e.target.checked) {
                                 setValue(fieldKey as any, [
                                   ...currentValues,
@@ -565,9 +564,9 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                                 );
                               }
                             }}
-                            className="text-[#00509E] rounded focus:ring-[#00509E]"
+                            className="rounded"
                           />
-                          <span className="text-gray-700">{option.label}</span>
+                          <span>{option.label}</span>
                         </label>
                       ))}
                     </div>
@@ -575,203 +574,54 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
 
                   {field.type === "upload" && (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <Input
-                            type="file"
-                            accept={`.${field.extension || "*"}`}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const maxSize = 5 * 1024 * 1024; // 5MB
+                      <Input
+                        type="file"
+                        accept={`.${field.extension || "*"}`}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const maxSize = 5 * 1024 * 1024;
+                            if (file.size > maxSize) {
+                              toast.error(`File exceeds 5MB limit.`);
+                              e.target.value = "";
+                              return;
+                            }
+                            setValue(fieldKey as any, file);
+                          }
+                        }}
+                      />
 
-                                if (file.size > maxSize) {
-                                  toast.error(
-                                    `File "${field.label}" exceeds 5MB limit.`
-                                  );
-                                  e.target.value = "";
-                                  return;
-                                }
-
-                                if (field.extension) {
-                                  const allowedExtensions = field.extension
-                                    .split(",")
-                                    .map((ext) =>
-                                      ext.trim().toLowerCase().replace(".", "")
-                                    );
-                                  const fileExtension = file.name
-                                    .split(".")
-                                    .pop()
-                                    ?.toLowerCase();
-
-                                  if (
-                                    !fileExtension ||
-                                    !allowedExtensions.includes(fileExtension)
-                                  ) {
-                                    toast.error(
-                                      `File must be of type: ${field.extension}`
-                                    );
-                                    e.target.value = "";
-                                    return;
-                                  }
-                                }
-
-                                setValue(fieldKey as any, file);
-                                const fileSizeKB = Math.round(file.size / 1024);
-                                toast.success(
-                                  `"${file.name}" uploaded (${fileSizeKB} KB)`
-                                );
-                              }
-                            }}
-                            className="bg-white border-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <span>Max file size: 5MB</span>
+                      {/* File restrictions info - show below input */}
+                      <div className="flex items-center gap-2">
+                        {field.extension && (
+                          <p className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            Allowed:{" "}
+                            {field.extension.startsWith(".")
+                              ? field.extension
+                              : `.${field.extension}`}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          Max: 5MB
+                        </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Error Message */}
                   {(errors as any)[fieldKey] && (
-                    <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md border border-red-200">
-                      <svg
-                        className="w-4 h-4 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span className="text-sm">
-                        {(errors as any)[fieldKey]?.message as string}
-                      </span>
-                    </div>
+                    <p className="text-sm text-red-600">
+                      {(errors as any)[fieldKey]?.message as string}
+                    </p>
                   )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     );
   };
 
-  // Fetch meal preferences based on event ID
-  const fetchMealPreferences = async (eventId: string) => {
-    try {
-      setLoadingMeals(true);
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}/meal-preferences/active`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await res.json();
-
-      if (data.success && Array.isArray(data.data)) {
-        setMealPreferences(data.data);
-      } else {
-        console.error("Failed to fetch meal preferences:", data);
-        toast.error("Failed to load meal preferences");
-        // Fallback to default options if API fails
-        setMealPreferences([
-          {
-            _id: "1",
-            mealName: "Vegetarian",
-            status: "Active",
-          } as MealPreference,
-          {
-            _id: "2",
-            mealName: "Non-Vegetarian",
-            status: "Active",
-          } as MealPreference,
-          { _id: "3", mealName: "Vegan", status: "Active" } as MealPreference,
-        ]);
-      }
-    } catch (err) {
-      console.error("GET meal preferences error:", err);
-      toast.error("Error loading meal preferences");
-      // Fallback to default options
-      setMealPreferences([
-        {
-          _id: "1",
-          mealName: "Vegetarian",
-          status: "Active",
-        } as MealPreference,
-        {
-          _id: "2",
-          mealName: "Non-Vegetarian",
-          status: "Active",
-        } as MealPreference,
-        { _id: "3", mealName: "Vegan", status: "Active" } as MealPreference,
-      ]);
-    } finally {
-      setLoadingMeals(false);
-    }
-  };
-
-  const fetchTerms = async (eventId: string) => {
-    try {
-      setTermsLoading(true);
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}/terms-and-conditions`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-        }
-      );
-
-      if (!res.ok) {
-        // treat 404 / not-found as empty list
-        setTerms([]);
-        return;
-      }
-
-      const data = await res.json();
-      if (data && data.success && Array.isArray(data.data)) {
-        setTerms(data.data);
-      } else {
-        setTerms([]);
-      }
-    } catch (err) {
-      console.error("GET terms error:", err);
-      setTerms([]);
-    } finally {
-      setTermsLoading(false);
-    }
-  };
-
-  // Fetch registration slabs based on event ID
   useEffect(() => {
     async function fetchRegistrationSlabs() {
       if (!currentEvent?._id) {
@@ -804,7 +654,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             amount: slab.amount,
             AccompanyAmount: slab.AccompanyAmount,
             needAdditionalInfo: slab.needAdditionalInfo,
-            additionalFields: slab.additionalFields,
+            additionalFields: slab.additionalFields as AdditionalField[],
             startDate: slab.startDate,
             endDate: slab.endDate,
           }));
@@ -812,11 +662,9 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           setCategories(transformedCategories);
           fetchTerms(currentEvent._id);
         } else {
-          console.error("Invalid response format:", data);
           toast.error("Failed to load registration options");
         }
       } catch (err) {
-        console.error("GET registration slabs error:", err);
         toast.error("Error loading registration options");
       } finally {
         setLoading(false);
@@ -826,19 +674,108 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     fetchRegistrationSlabs();
   }, [currentEvent?._id]);
 
+  // Fetch meal preferences function
+  const fetchMealPreferences = async (eventId: string) => {
+    try {
+      setLoadingMeals(true);
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}/meal-preferences/active`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.success && Array.isArray(data.data)) {
+        setMealPreferences(data.data);
+      } else {
+        toast.error("Failed to load meal preferences");
+        // Fallback to default options if API fails
+        setMealPreferences([
+          {
+            _id: "1",
+            mealName: "Vegetarian",
+            status: "Active",
+          } as MealPreference,
+          {
+            _id: "2",
+            mealName: "Non-Vegetarian",
+            status: "Active",
+          } as MealPreference,
+          { _id: "3", mealName: "Vegan", status: "Active" } as MealPreference,
+        ]);
+      }
+    } catch (err) {
+      toast.error("Error loading meal preferences");
+      // Fallback to default options
+      setMealPreferences([
+        {
+          _id: "1",
+          mealName: "Vegetarian",
+          status: "Active",
+        } as MealPreference,
+        {
+          _id: "2",
+          mealName: "Non-Vegetarian",
+          status: "Active",
+        } as MealPreference,
+        { _id: "3", mealName: "Vegan", status: "Active" } as MealPreference,
+      ]);
+    } finally {
+      setLoadingMeals(false);
+    }
+  };
+
+  // Fetch terms and conditions
+  const fetchTerms = async (eventId: string) => {
+    try {
+      setTermsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}/terms-and-conditions`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
+      );
+
+      if (!res.ok) {
+        // treat 404 / not-found as empty list
+        setTerms([]);
+        return;
+      }
+
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.data)) {
+        setTerms(data.data);
+      } else {
+        setTerms([]);
+      }
+    } catch (err) {
+      setTerms([]);
+    } finally {
+      setTermsLoading(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
-      {/* Grid of Inputs */}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      {/* Grid of Inputs - CORRECTED field names */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-1.5">
-          <Label htmlFor="prefix">
+        <div className="space-y-2">
+          <Label>
             Prefix <span className="text-red-600">*</span>
           </Label>
-          <Input
-            id="prefix"
-            placeholder="Eg: Dr, Mr, Ms"
-            {...register("prefix")}
-          />
+          <Input placeholder="Eg: Dr, Mr, Ms" {...register("prefix")} />
           {errors.prefix && (
             <p className="text-sm text-red-600">
               {typeof errors.prefix.message === "string"
@@ -848,21 +785,21 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             Full Name <span className="text-red-600">*</span>
           </Label>
-          <Input {...register("fullName")} />
-          {errors.fullName && (
+          <Input {...register("name")} />
+          {errors.name && (
             <p className="text-sm text-red-600">
-              {typeof errors.fullName.message === "string"
-                ? errors.fullName.message
+              {typeof errors.name.message === "string"
+                ? errors.name.message
                 : "This field is required"}
             </p>
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             Gender <span className="text-red-600">*</span>
           </Label>
@@ -891,7 +828,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             Email Id <span className="text-red-600">*</span>
           </Label>
@@ -905,31 +842,28 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             Mobile No. <span className="text-red-600">*</span>
           </Label>
           <Input
-            type="tel"
-            inputMode="numeric"
-            maxLength={10}
-            {...register("phone")}
+            {...register("mobile")}
             onInput={(e) => {
               let val = e.currentTarget.value.replace(/\D/g, "");
               if (val.length > 10) val = val.slice(0, 10);
               e.currentTarget.value = val;
             }}
           />
-          {errors.phone && (
+          {errors.mobile && (
             <p className="text-sm text-red-600">
-              {typeof errors.phone.message === "string"
-                ? errors.phone.message
+              {typeof errors.mobile.message === "string"
+                ? errors.mobile.message
                 : "This field is required"}
             </p>
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             Affiliation <span className="text-red-600">*</span>
           </Label>
@@ -943,48 +877,31 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             Designation <span className="text-red-600">*</span>
           </Label>
           <Input {...register("designation")} />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Medical Council Registration</Label>
-          <Input {...register("medicalCouncilRegistration")} />
-          {errors.medicalCouncilRegistration && (
+          {errors.designation && (
             <p className="text-sm text-red-600">
-              {typeof errors.medicalCouncilRegistration.message === "string"
-                ? errors.medicalCouncilRegistration.message
+              {typeof errors.designation.message === "string"
+                ? errors.designation.message
                 : "This field is required"}
             </p>
           )}
         </div>
 
-        {/* ✅ Updated Meal Preference Section */}
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label>
             Meal Preference <span className="text-red-600">*</span>
           </Label>
           <Controller
             name="mealPreference"
             control={control}
-            defaultValue=""
             render={({ field }) => (
-              <Select
-                onValueChange={field.onChange}
-                value={field.value || ""}
-                disabled={loadingMeals}
-              >
+              <Select onValueChange={field.onChange} value={field.value || ""}>
                 <SelectTrigger className="w-full cursor-pointer">
-                  <SelectValue
-                    placeholder={
-                      loadingMeals
-                        ? "Loading meal preferences..."
-                        : "Select Meal Preference"
-                    }
-                  />
+                  <SelectValue placeholder="Select Meal Preference" />
                 </SelectTrigger>
                 <SelectContent>
                   {mealPreferences.length > 0 ? (
@@ -994,7 +911,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                       </SelectItem>
                     ))
                   ) : (
-                    // Fallback options if no meal preferences are loaded
                     <>
                       <SelectItem value="Vegetarian">Vegetarian</SelectItem>
                       <SelectItem value="Non-Vegetarian">
@@ -1014,57 +930,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                 : "This field is required"}
             </p>
           )}
-          {loadingMeals && (
-            <p className="text-sm text-blue-600">Loading meal preferences...</p>
-          )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="md:col-span-2 space-y-2">
           <Label>
-            Medical Council State <span className="text-red-600">*</span>
-          </Label>
-
-          {!basicDetails.medicalCouncilState ||
-          basicDetails.medicalCouncilState.trim() === "" ? (
-            // ✅ Show dropdown if no prefilled value
-            <Controller
-              name="medicalCouncilState"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || ""}
-                >
-                  <SelectTrigger className="w-full cursor-pointer">
-                    <SelectValue placeholder="Select Medical Council" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {medicalCouncils.map((council) => (
-                      <SelectItem key={council} value={council}>
-                        {council}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          ) : (
-            // ✅ Show text input if profile already has a council value
-            <Input {...register("medicalCouncilState")} />
-          )}
-
-          {errors.medicalCouncilState && (
-            <p className="text-sm text-red-600">
-              {typeof errors.medicalCouncilState.message === "string"
-                ? errors.medicalCouncilState.message
-                : "This field is required"}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1.5 md:col-span-2">
-          <Label>
-            Primary Address <span className="text-red-600">*</span>
+            Address <span className="text-red-600">*</span>
           </Label>
           <Textarea {...register("address")} />
           {errors.address && (
@@ -1076,7 +946,8 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
+        <div className="md:col-span-2">
+          {" "}
           <CountryStateCitySelect
             control={control}
             watch={watch}
@@ -1091,29 +962,34 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         </div>
       </div>
 
-      {/* DYNAMIC FORM SECTION - BEFORE REGISTRATION CATEGORY */}
+      {/* Dynamic Form Section - SIMPLIFIED */}
       {loadingDynamicForm ? (
-        <div className="flex items-center justify-center py-8 border rounded-lg bg-gray-50">
+        <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00509E] mx-auto mb-2"></div>
             <p className="text-gray-600">Loading additional form fields...</p>
           </div>
         </div>
       ) : dynamicFormFields.length > 0 ? (
-        <DynamicFormSection
-          fields={dynamicFormFields}
-          control={control}
-          watch={watch}
-          register={register}
-          setValue={setValue}
-          errors={errors}
-          fileUploads={basicDetails.dynamicFormFileUploads || {}}
-          onFileUpload={handleDynamicFileUpload}
-        />
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold text-[#00509E]">
+            Additional Registration Information
+          </h3>
+          <DynamicFormSection
+            fields={dynamicFormFields}
+            control={control}
+            watch={watch}
+            register={register}
+            setValue={setValue}
+            errors={errors}
+            fileUploads={basicDetails.dynamicFormFileUploads || {}}
+            onFileUpload={handleDynamicFileUpload}
+          />
+        </div>
       ) : null}
 
-      {/* Registration Category Section */}
-      <div className="space-y-2">
+      {/* Registration Category Section - SIMPLIFIED */}
+      <div className="space-y-4">
         <Label className="font-medium">
           Select Registration Category <span className="text-red-600">*</span>
         </Label>
@@ -1126,55 +1002,49 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             </div>
           </div>
         ) : categories.length === 0 ? (
-          <div className="text-center py-8 border rounded-lg bg-gray-50">
+          <div className="text-center py-8">
             <p className="text-gray-500">
               No registration options available for this event.
-            </p>
-            <p className="text-gray-400 text-sm mt-1">
-              Please contact event organizers.
             </p>
           </div>
         ) : (
           <RadioGroup
-            defaultValue={
-              basicDetails.registrationCategory
-                ? JSON.stringify(basicDetails.registrationCategory)
-                : ""
-            }
             onValueChange={(val) => {
               const category = JSON.parse(val);
               handleCategorySelect(category);
             }}
-            className="space-y-2 border border-gray-200 rounded-lg p-3"
+            className="space-y-3"
           >
             {categories.map((cat) => (
               <Label
                 key={cat._id}
                 htmlFor={cat._id}
-                className="flex items-center justify-between border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <RadioGroupItem value={JSON.stringify(cat)} id={cat._id} />
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{cat.slabName}</span>
+                    <div className="font-medium flex items-center gap-2">
+                      {cat.slabName}
                       {cat.needAdditionalInfo && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                        <div className="flex items-center gap-1 text-blue-600">
                           <Info className="h-3 w-3" />
-                          Additional info required
-                        </span>
+                          <span className="text-xs">
+                            Additional info required
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-green-600">
+                <div className="text-right space-y-2">
+                  <div className="text-[20px] font-semibold text-green-600">
                     ₹ {cat.amount.toLocaleString("en-IN")}.00
-                  </p>
+                  </div>
                   {cat.endDate && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <div className="text-[12px] text-gray-500 font-medium">
                       {formatValidTill(cat.endDate)}
-                    </p>
+                    </div>
                   )}
                 </div>
               </Label>
@@ -1190,46 +1060,41 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         )}
       </div>
 
-      {/* Render Additional Fields */}
+      {/* Render Additional Fields - SIMPLIFIED */}
       {renderAdditionalFields()}
 
-      {/* Terms & Conditions - Compact Version */}
-      <div className="mt-6">
-        <div className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg">
+      {/* Terms & Conditions */}
+      <div>
+        <div className="flex items-start gap-3">
           <Controller
             name="acceptedTerms"
             control={control}
             render={({ field }) => (
-              <label className="flex items-start gap-3 cursor-pointer flex-1">
+              <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={!!field.value}
                   onChange={(e) => field.onChange(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 text-[#00509E] border-gray-300 rounded focus:ring-[#00509E]"
+                  className="mt-0.5 h-4 w-4"
                 />
-                <div className="flex-1">
-                  <span className="text-sm text-gray-900">
-                    I accept the{" "}
-                    <a
-                      href={
-                        currentEvent?._id
-                          ? `/events/${currentEvent._id}/terms`
-                          : "#"
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#00509E] hover:text-[#003B73] font-medium underline transition-colors"
-                    >
-                      Terms & Conditions
-                    </a>{" "}
-                    and Cancellation Policy
-                  </span>
-                </div>
+                <span className="text-sm">
+                  I accept the{" "}
+                  <a
+                    href={
+                      currentEvent?._id
+                        ? `/events/${currentEvent._id}/terms`
+                        : "#"
+                    }
+                    target="_blank"
+                    className="text-[#00509E] underline"
+                  >
+                    Terms & Conditions
+                  </a>
+                </span>
               </label>
             )}
           />
         </div>
-        {/* Validation Error */}
         {errors.acceptedTerms && (
           <p className="text-sm text-red-600">
             {typeof errors.acceptedTerms.message === "string"
@@ -1240,13 +1105,13 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       </div>
 
       {/* Submit */}
-      <div className="text-center">
+      <div className="text-center pt-4">
         <Button
           type="submit"
-          className="bg-[#00509E] hover:bg-[#003B73] px-8 cursor-pointer"
-          disabled={loading || categories.length === 0 || loadingMeals}
+          className="bg-[#00509E] hover:bg-[#003B73] px-8"
+          disabled={loading || categories.length === 0}
         >
-          {loading || loadingMeals ? "Loading..." : "Save & Continue"}
+          {loading ? "Loading..." : "Save & Continue"}
         </Button>
       </div>
     </form>

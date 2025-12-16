@@ -15,22 +15,15 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import {
-  Info,
-  FileUp,
-  X,
-  FileText,
-  Image,
-  File,
-  Music,
-  Video,
-} from "lucide-react";
+import { Info, X, FileText, Image, ChevronDownIcon } from "lucide-react";
 import { DynamicFormField } from "@/app/store/useRegistrationStore";
 import {
-  validateFileUpload,
-  getAcceptAttribute,
-  formatFileSize,
-} from "@/app/utils/fileValidation";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import format from "date-fns/format";
 
 interface DynamicFormSectionProps {
   fields: DynamicFormField[];
@@ -61,44 +54,6 @@ export default function DynamicFormSection({
     return null;
   }
 
-  // Get file icon component
-  const getFileIconComponent = (fileName: string) => {
-    const extension = fileName.split(".").pop()?.toLowerCase();
-
-    switch (extension) {
-      case "pdf":
-        return <FileText className="h-4 w-4 text-red-500" />;
-      case "doc":
-      case "docx":
-        return <FileText className="h-4 w-4 text-blue-500" />;
-      case "xls":
-      case "xlsx":
-        return <FileText className="h-4 w-4 text-green-500" />;
-      case "ppt":
-      case "pptx":
-        return <FileText className="h-4 w-4 text-orange-500" />;
-      case "jpg":
-      case "jpeg":
-      case "png":
-      case "gif":
-      case "webp":
-      case "bmp":
-      case "svg":
-        return <Image className="h-4 w-4 text-purple-500" />;
-      case "mp3":
-      case "wav":
-      case "ogg":
-        return <Music className="h-4 w-4 text-pink-500" />;
-      case "mp4":
-      case "avi":
-      case "mov":
-      case "wmv":
-        return <Video className="h-4 w-4 text-indigo-500" />;
-      default:
-        return <File className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
   const handleFileChange = async (
     id: string,
     event: React.ChangeEvent<HTMLInputElement>,
@@ -107,25 +62,47 @@ export default function DynamicFormSection({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file
-    const validation = validateFileUpload(
-      file,
-      field.fileUploadTypes,
-      field.maxFileSize
-    );
-
-    if (!validation.valid) {
-      toast.error(validation.error);
+    // Validate file size (5MB default)
+    const maxSize = (field.maxFileSize || 5) * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(`File size exceeds ${field.maxFileSize || 5}MB limit`);
       event.target.value = "";
       return;
+    }
+
+    // In handleFileChange function, update the validation:
+    if (field.fileUploadTypes) {
+      const allowedExtensions = field.fileUploadTypes
+        .split(",")
+        .map((ext) => ext.trim().toLowerCase());
+
+      const fileExtension = file.name.split(".").pop()?.toLowerCase();
+
+      // Handle cases like "png" (without dot) or ".png" (with dot)
+      const normalizedAllowedExtensions = allowedExtensions.map((ext) =>
+        ext.startsWith(".") ? ext.substring(1) : ext
+      );
+
+      if (
+        !fileExtension ||
+        !normalizedAllowedExtensions.includes(fileExtension)
+      ) {
+        toast.error(`File type not allowed. Allowed: ${field.fileUploadTypes}`);
+        event.target.value = "";
+        return;
+      }
     }
 
     setUploadingFiles((prev) => ({ ...prev, [id]: true }));
 
     try {
+      // Store file separately, NOT in form value
       onFileUpload(id, file);
-      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-      toast.success(`${file.name} uploaded (${fileSizeMB} MB)`);
+
+      // IMPORTANT: Set form value to null
+      setValue(`dynamic_${field.id}`, null, { shouldValidate: true });
+
+      toast.success(`File uploaded: ${file.name}`);
     } catch (error) {
       toast.error("Failed to upload file");
     } finally {
@@ -143,116 +120,39 @@ export default function DynamicFormSection({
     const fieldKey = `dynamic_${field.id}`;
     const hasError = (errors as any)[fieldKey];
     const uploadedFile = fileUploads?.[field.id];
-    const isFileField = field.type === "input" && field.inputTypes === "file";
+
+    // Check if it's a file field (both formats)
+    const isFileField =
+      field.type === "file" ||
+      (field.type === "input" && field.inputTypes === "file");
 
     return (
-      <div
-        key={field.id}
-        className={`p-4 border rounded-lg space-y-3 ${
-          hasError
-            ? "border-red-300 bg-red-50"
-            : "border-gray-200 bg-gray-50 hover:bg-gray-100/50"
-        }`}
-      >
+      <div key={field.id} className="space-y-3">
         {/* Field Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Label className="font-medium text-gray-800">
-              {field.label}
-              {field.required && <span className="text-red-600 ml-1">*</span>}
-            </Label>
+          <Label className="font-medium">
+            {field.label}
+            {field.required && <span className="text-red-600 ml-1">*</span>}
             {field.description && (
               <div className="group relative">
                 <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded-md z-50">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded-md">
                   {field.description}
                 </div>
               </div>
             )}
-          </div>
-
-          {isFileField && field.fileUploadTypes && (
-            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-              Allowed: {field.fileUploadTypes}
-            </span>
-          )}
+          </Label>
         </div>
 
         {/* Field Input */}
         {field.type === "input" && (
-          <div className="space-y-2">
-            {isFileField ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <Input
-                      id={`file-${field.id}`}
-                      type="file"
-                      accept={getAcceptAttribute(field.fileUploadTypes)}
-                      onChange={(e) => handleFileChange(field.id, e, field)}
-                      className="bg-white"
-                      disabled={uploadingFiles[field.id]}
-                    />
-                  </div>
-                  {uploadedFile && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeFile(field.id)}
-                      className="cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-
-                {uploadedFile && (
-                  <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex-shrink-0">
-                      {getFileIconComponent(uploadedFile.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {uploadedFile.name}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>{formatFileSize(uploadedFile.size)}</span>
-                        <span>•</span>
-                        <span>
-                          {uploadedFile.name.split(".").pop()?.toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-xs text-green-600 font-medium">
-                      Ready to upload
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <Info className="h-3 w-3" />
-                  <span>Max size: {field.maxFileSize || 5}MB</span>
-                  {field.fileUploadTypes && (
-                    <>
-                      <span>•</span>
-                      <span>Types: {field.fileUploadTypes}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <Input
-                type={field.inputTypes || "text"}
-                placeholder={field.placeholder}
-                {...register(fieldKey)}
-                defaultValue={field.defaultValue}
-                minLength={field.minLength}
-                maxLength={field.maxLength}
-                className="bg-white"
-              />
-            )}
-          </div>
+          <Input
+            type={field.inputTypes || "text"}
+            placeholder={field.placeholder}
+            {...register(fieldKey)}
+            defaultValue={field.defaultValue}
+            className="w-full"
+          />
         )}
 
         {field.type === "textarea" && (
@@ -260,10 +160,8 @@ export default function DynamicFormSection({
             placeholder={field.placeholder}
             {...register(fieldKey)}
             defaultValue={field.defaultValue}
-            minLength={field.minLength}
-            maxLength={field.maxLength}
             rows={3}
-            className="bg-white"
+            className="w-full"
           />
         )}
 
@@ -277,7 +175,7 @@ export default function DynamicFormSection({
                 onValueChange={controllerField.onChange}
                 value={controllerField.value || ""}
               >
-                <SelectTrigger className="bg-white cursor-pointer">
+                <SelectTrigger className="w-full">
                   <SelectValue
                     placeholder={field.placeholder || "Select an option"}
                   />
@@ -303,20 +201,15 @@ export default function DynamicFormSection({
               <RadioGroup
                 onValueChange={controllerField.onChange}
                 value={controllerField.value || ""}
-                className="space-y-2 bg-white p-3 rounded-md border border-gray-300"
+                className="space-y-2"
               >
                 {field.options!.map((option, index) => (
-                  <div key={index} className="flex items-center space-x-3">
+                  <div key={index} className="flex items-center space-x-2">
                     <RadioGroupItem
                       value={option}
                       id={`${field.id}-${index}`}
                     />
-                    <Label
-                      htmlFor={`${field.id}-${index}`}
-                      className="cursor-pointer"
-                    >
-                      {option}
-                    </Label>
+                    <Label htmlFor={`${field.id}-${index}`}>{option}</Label>
                   </div>
                 ))}
               </RadioGroup>
@@ -324,86 +217,128 @@ export default function DynamicFormSection({
           />
         )}
 
-        {field.type === "checkbox" &&
-          field.options &&
-          field.options.length > 0 && (
-            <div className="space-y-2 bg-white p-3 rounded-md border border-gray-300">
-              {field.options.map((option, index) => (
-                <label
-                  key={index}
-                  className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded"
-                >
-                  <input
-                    type="checkbox"
-                    value={option}
-                    onChange={(e) => {
-                      const currentValues = watch(fieldKey) || [];
-                      if (e.target.checked) {
-                        const newValues = [...currentValues, option];
+        {field.type === "checkbox" && field.options && (
+          <div className="space-y-2">
+            {field.options.map((option, index) => (
+              <label key={index} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  value={option}
+                  onChange={(e) => {
+                    const currentValues = watch(fieldKey) || [];
+                    if (e.target.checked) {
+                      const newValues = [...currentValues, option];
 
-                        if (
-                          field.maxSelected &&
-                          newValues.length > field.maxSelected
-                        ) {
-                          toast.error(
-                            `Maximum ${field.maxSelected} selections allowed`
-                          );
-                          return;
-                        }
-
-                        setValue(fieldKey, newValues);
-                      } else {
-                        setValue(
-                          fieldKey,
-                          currentValues.filter((v: string) => v !== option)
+                      if (
+                        field.maxSelected &&
+                        newValues.length > field.maxSelected
+                      ) {
+                        toast.error(
+                          `Maximum ${field.maxSelected} selections allowed`
                         );
+                        return;
                       }
-                    }}
-                    checked={(watch(fieldKey) || []).includes(option)}
-                    className="rounded focus:ring-[#00509E]"
-                  />
-                  <span className="text-gray-700">{option}</span>
-                </label>
-              ))}
-              {field.minSelected && (
-                <p className="text-xs text-gray-500">
-                  Minimum {field.minSelected} selection(s) required
-                </p>
-              )}
-              {field.maxSelected && (
-                <p className="text-xs text-gray-500">
-                  Maximum {field.maxSelected} selection(s) allowed
-                </p>
-              )}
-            </div>
-          )}
+
+                      setValue(fieldKey, newValues);
+                    } else {
+                      setValue(
+                        fieldKey,
+                        currentValues.filter((v: string) => v !== option)
+                      );
+                    }
+                  }}
+                  checked={(watch(fieldKey) || []).includes(option)}
+                  className="rounded"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        )}
 
         {field.type === "date" && (
-          <Input
-            type="date"
-            {...register(fieldKey)}
-            defaultValue={field.defaultValue}
-            className="bg-white"
-          />
+          <div className="space-y-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between font-normal"
+                >
+                  {watch(fieldKey)
+                    ? new Date(watch(fieldKey)).toLocaleDateString()
+                    : "Select date"}
+                  <ChevronDownIcon className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={
+                    watch(fieldKey) ? new Date(watch(fieldKey)) : undefined
+                  }
+                  captionLayout="dropdown"
+                  onSelect={(date) => {
+                    setValue(fieldKey, date?.toISOString().split("T")[0] || "");
+                  }}
+                  fromYear={1900}
+                  toYear={new Date().getFullYear()}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
+        {/* For file fields (type: "file" OR type: "input" with inputTypes: "file") */}
+        {(field.type === "file" ||
+          (field.type === "input" && field.inputTypes === "file")) && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Input
+                id={`file-${field.id}`}
+                type="file"
+                accept={
+                  field.fileUploadTypes
+                    ? field.fileUploadTypes
+                        .split(",")
+                        .map((ext) =>
+                          ext.trim().startsWith(".")
+                            ? ext.trim()
+                            : `.${ext.trim()}`
+                        )
+                        .join(",")
+                    : "*"
+                }
+                onChange={(e) => handleFileChange(field.id, e, field)}
+                className="flex-1"
+                disabled={uploadingFiles[field.id]}
+              />
+            </div>
+
+            {/* File restrictions info - show below input */}
+            {(field.fileUploadTypes || field.maxFileSize) && (
+              <p className="text-xs text-gray-500 flex items-center gap-2">
+                {field.fileUploadTypes && (
+                  <span className="bg-gray-100 px-2 py-1 rounded">
+                    Allowed: {field.fileUploadTypes}
+                  </span>
+                )}
+                {field.maxFileSize && (
+                  <span className="bg-gray-100 px-2 py-1 rounded">
+                    Max: {field.maxFileSize}MB
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
         )}
 
         {/* Error Message */}
         {hasError && (
-          <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md border border-red-200">
-            <Info className="h-4 w-4 flex-shrink-0" />
-            <span className="text-sm">{hasError.message as string}</span>
-          </div>
+          <p className="text-sm text-red-600">{hasError.message as string}</p>
         )}
       </div>
     );
   };
 
-  return (
-    <div className="mt-6 p-6 border border-gray-300 rounded-lg bg-white shadow-sm">
-      <h3 className="text-lg font-semibold text-[#00509E] mb-6 pb-2 border-b border-gray-200">
-        Additional Registration Information
-      </h3>
-      <div className="space-y-6">{fields.map(renderField)}</div>
-    </div>
-  );
+  return <div className="space-y-6">{fields.map(renderField)}</div>;
 }
