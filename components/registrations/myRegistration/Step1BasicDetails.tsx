@@ -26,8 +26,14 @@ import CountryStateCitySelect from "@/components/common/CountryStateCitySelect";
 import { useEventStore } from "@/app/store/useEventStore";
 import { medicalCouncils } from "@/app/data/medicalCouncils";
 import { formatValidTill } from "@/app/utils/formatEventDate";
-import { Info } from "lucide-react";
+import { ChevronDownIcon, Info } from "lucide-react";
 import DynamicFormSection from "./DynamicFormSection";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 // Update createDynamicSchema function:
 const createDynamicSchema = (
@@ -89,13 +95,8 @@ const createDynamicSchema = (
       (field.type === "input" && field.inputTypes === "file");
 
     if (isFileField) {
-      schemaFields[fieldKey] = field.required
-        ? z
-            .any()
-            .refine((val) => val === null || (typeof val === "string" && val), {
-              message: `${field.label} is required`,
-            })
-        : z.any().optional();
+      // Skip Zod validation for file fields
+      schemaFields[fieldKey] = z.any().optional();
     } else if (field.type === "checkbox") {
       schemaFields[fieldKey] = field.required
         ? z.array(z.string()).min(1, `${field.label} is required`)
@@ -245,7 +246,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
 
         try {
           const data = await response.json();
-          console.log("Dynamic form response data:", data);
 
           if (data.success && data.data?.fields) {
             // Ensure fields have correct type mapping
@@ -260,7 +260,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
               return field;
             });
 
-            console.log("Transformed fields:", transformedFields);
             setDynamicFormFields(transformedFields);
           }
         } catch (jsonError) {
@@ -281,9 +280,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
   }, [currentEvent?._id, setDynamicFormFields]);
 
   const onSubmit: SubmitHandler<FormDataType> = (data) => {
-    console.log("=== DEBUG: Form Data Before Processing ===");
-    console.log(JSON.stringify(data, null, 2));
-
     const additionalAnswers: Record<string, any> = {};
     const fileUploads: Record<string, File> = {};
 
@@ -299,17 +295,27 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           if (field.type === "upload") {
             if (value instanceof File) {
               fileUploads[field.id.toString()] = value;
-              additionalAnswers[field.id.toString()] = null;
+              additionalAnswers[field.id.toString()] = ""; // Empty string for file
             } else if (typeof value === "string" && value) {
               additionalAnswers[field.id.toString()] = value;
             } else {
-              additionalAnswers[field.id.toString()] = null;
+              additionalAnswers[field.id.toString()] = "";
             }
           } else if (field.type === "checkbox") {
-            additionalAnswers[field.id.toString()] = Array.isArray(value)
-              ? value
-              : [];
+            // FIX: Checkbox fields should always be arrays
+            if (Array.isArray(value)) {
+              additionalAnswers[field.id.toString()] = value;
+            } else if (typeof value === "string") {
+              // Single checkbox value (not common but possible)
+              additionalAnswers[field.id.toString()] = [value];
+            } else {
+              additionalAnswers[field.id.toString()] = [];
+            }
+          } else if (field.type === "radio") {
+            // Radio buttons return single value
+            additionalAnswers[field.id.toString()] = value || "";
           } else {
+            // Textbox, date, etc.
             additionalAnswers[field.id.toString()] = value || "";
           }
         });
@@ -325,21 +331,13 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       const value = (data as any)[fieldKey];
       const existingFile = basicDetails.dynamicFormFileUploads?.[field.id];
 
-      console.log(`Processing field ${field.id}:`, {
-        fieldKey,
-        value,
-        isFile: value instanceof File,
-        fieldType: field.type,
-        inputTypes: field.inputTypes,
-      });
-
       const answer: Record<string, any> = {
         id: field.id,
         label: field.label,
         type: field.type, // Keep original type
         required: field.required,
-        value: null,
-        fileUrl: null,
+        value: "", // CHANGED: Default to empty string
+        fileUrl: "",
       };
 
       // Check if it's a file field (both formats)
@@ -350,14 +348,14 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       if (isFileField) {
         if (existingFile instanceof File) {
           dynamicFileUploads[field.id] = existingFile;
-          answer.value = null;
-          answer.fileUrl = null;
+          answer.value = ""; // CHANGED: Empty string for file
+          answer.fileUrl = ""; // CHANGED: Empty string
         } else if (value && typeof value === "string") {
           answer.value = value;
           answer.fileUrl = value;
         } else {
-          answer.value = null;
-          answer.fileUrl = null;
+          answer.value = ""; // CHANGED: Empty string
+          answer.fileUrl = ""; // CHANGED: Empty string
         }
       } else if (field.type === "checkbox") {
         answer.value = Array.isArray(value) ? value : [value].filter(Boolean);
@@ -373,24 +371,15 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         answer.options = field.options;
       }
 
-      // Double-check: ensure no File objects in value
-      if (answer.value instanceof File) {
-        console.error(`❌ File object found in answer.value for ${field.id}!`);
-        answer.value = null;
-      }
-
       dynamicFormAnswers.push(answer);
     });
-
-    console.log("=== Final dynamicFormAnswers ===");
-    console.log(JSON.stringify(dynamicFormAnswers, null, 2));
 
     // Verify no File objects
     const hasFileObjects = dynamicFormAnswers.some(
       (answer) => answer.value instanceof File
     );
     if (hasFileObjects) {
-      console.error("❌ ERROR: File objects in dynamicFormAnswers!");
+      console.error("ERROR: File objects in dynamicFormAnswers!");
     }
 
     // Save to store
@@ -490,7 +479,42 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                   )}
 
                   {field.type === "date" && (
-                    <Input type="date" {...register(fieldKey as any)} />
+                    <div className="space-y-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between font-normal"
+                          >
+                            {watch(fieldKey as any)
+                              ? new Date(
+                                  watch(fieldKey as any)
+                                ).toLocaleDateString()
+                              : "Select date"}
+                            <ChevronDownIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              watch(fieldKey as any)
+                                ? new Date(watch(fieldKey as any))
+                                : undefined
+                            }
+                            captionLayout="dropdown"
+                            onSelect={(date) => {
+                              setValue(
+                                fieldKey as any,
+                                date?.toISOString().split("T")[0] || ""
+                              );
+                            }}
+                            fromYear={1900}
+                            toYear={new Date().getFullYear()}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   )}
 
                   {field.type === "radio" && field.options && (
@@ -525,6 +549,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                             onChange={(e) => {
                               const currentValues =
                                 watch(fieldKey as any) || [];
+
                               if (e.target.checked) {
                                 setValue(fieldKey as any, [
                                   ...currentValues,
@@ -548,7 +573,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                   )}
 
                   {field.type === "upload" && (
-                    <div>
+                    <div className="space-y-2">
                       <Input
                         type="file"
                         accept={`.${field.extension || "*"}`}
@@ -565,6 +590,21 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                           }
                         }}
                       />
+
+                      {/* File restrictions info - show below input */}
+                      <div className="flex items-center gap-2">
+                        {field.extension && (
+                          <p className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            Allowed:{" "}
+                            {field.extension.startsWith(".")
+                              ? field.extension
+                              : `.${field.extension}`}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          Max: 5MB
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -606,7 +646,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         );
 
         const data = await res.json();
-        console.log("Registration slabs response data:", data);
 
         if (data.success && Array.isArray(data.data)) {
           const transformedCategories = data.data.map((slab: any) => ({
@@ -623,11 +662,9 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           setCategories(transformedCategories);
           fetchTerms(currentEvent._id);
         } else {
-          console.error("Invalid response format:", data);
           toast.error("Failed to load registration options");
         }
       } catch (err) {
-        console.error("GET registration slabs error:", err);
         toast.error("Error loading registration options");
       } finally {
         setLoading(false);
@@ -658,7 +695,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       if (data.success && Array.isArray(data.data)) {
         setMealPreferences(data.data);
       } else {
-        console.error("Failed to fetch meal preferences:", data);
         toast.error("Failed to load meal preferences");
         // Fallback to default options if API fails
         setMealPreferences([
@@ -676,7 +712,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         ]);
       }
     } catch (err) {
-      console.error("GET meal preferences error:", err);
       toast.error("Error loading meal preferences");
       // Fallback to default options
       setMealPreferences([
@@ -726,7 +761,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         setTerms([]);
       }
     } catch (err) {
-      console.error("GET terms error:", err);
       setTerms([]);
     } finally {
       setTermsLoading(false);
@@ -774,7 +808,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             control={control}
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value || ""}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full cursor-pointer">
                   <SelectValue placeholder="Select Gender" />
                 </SelectTrigger>
                 <SelectContent>
@@ -866,7 +900,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             control={control}
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value || ""}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full cursor-pointer">
                   <SelectValue placeholder="Select Meal Preference" />
                 </SelectTrigger>
                 <SelectContent>
@@ -913,6 +947,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         </div>
 
         <div className="md:col-span-2">
+          {" "}
           <CountryStateCitySelect
             control={control}
             watch={watch}
@@ -989,12 +1024,17 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                 <div className="flex items-center gap-3">
                   <RadioGroupItem value={JSON.stringify(cat)} id={cat._id} />
                   <div>
-                    <div className="font-medium">{cat.slabName}</div>
-                    {cat.needAdditionalInfo && (
-                      <div className="text-sm text-blue-600">
-                        Additional info required
-                      </div>
-                    )}
+                    <div className="font-medium flex items-center gap-2">
+                      {cat.slabName}
+                      {cat.needAdditionalInfo && (
+                        <div className="flex items-center gap-1 text-blue-600">
+                          <Info className="h-3 w-3" />
+                          <span className="text-xs">
+                            Additional info required
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">

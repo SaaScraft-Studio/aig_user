@@ -15,8 +15,15 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Info, X, FileText, Image } from "lucide-react";
+import { Info, X, FileText, Image, ChevronDownIcon } from "lucide-react";
 import { DynamicFormField } from "@/app/store/useRegistrationStore";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import format from "date-fns/format";
 
 interface DynamicFormSectionProps {
   fields: DynamicFormField[];
@@ -63,15 +70,23 @@ export default function DynamicFormSection({
       return;
     }
 
-    // Validate file extension
+    // In handleFileChange function, update the validation:
     if (field.fileUploadTypes) {
       const allowedExtensions = field.fileUploadTypes
         .split(",")
-        .map((ext) => ext.trim().toLowerCase().replace(".", ""));
+        .map((ext) => ext.trim().toLowerCase());
 
       const fileExtension = file.name.split(".").pop()?.toLowerCase();
 
-      if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      // Handle cases like "png" (without dot) or ".png" (with dot)
+      const normalizedAllowedExtensions = allowedExtensions.map((ext) =>
+        ext.startsWith(".") ? ext.substring(1) : ext
+      );
+
+      if (
+        !fileExtension ||
+        !normalizedAllowedExtensions.includes(fileExtension)
+      ) {
         toast.error(`File type not allowed. Allowed: ${field.fileUploadTypes}`);
         event.target.value = "";
         return;
@@ -118,15 +133,15 @@ export default function DynamicFormSection({
           <Label className="font-medium">
             {field.label}
             {field.required && <span className="text-red-600 ml-1">*</span>}
-          </Label>
-          {field.description && (
-            <div className="group relative">
-              <Info className="h-4 w-4 text-gray-400 cursor-help" />
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded-md">
-                {field.description}
+            {field.description && (
+              <div className="group relative">
+                <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded-md">
+                  {field.description}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </Label>
         </div>
 
         {/* Field Input */}
@@ -242,52 +257,77 @@ export default function DynamicFormSection({
         )}
 
         {field.type === "date" && (
-          <Input
-            type="date"
-            {...register(fieldKey)}
-            defaultValue={field.defaultValue}
-            className="w-full"
-          />
+          <div className="space-y-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between font-normal"
+                >
+                  {watch(fieldKey)
+                    ? new Date(watch(fieldKey)).toLocaleDateString()
+                    : "Select date"}
+                  <ChevronDownIcon className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={
+                    watch(fieldKey) ? new Date(watch(fieldKey)) : undefined
+                  }
+                  captionLayout="dropdown"
+                  onSelect={(date) => {
+                    setValue(fieldKey, date?.toISOString().split("T")[0] || "");
+                  }}
+                  fromYear={1900}
+                  toYear={new Date().getFullYear()}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         )}
 
-        {field.type === "file" && (
+        {/* For file fields (type: "file" OR type: "input" with inputTypes: "file") */}
+        {(field.type === "file" ||
+          (field.type === "input" && field.inputTypes === "file")) && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Input
                 id={`file-${field.id}`}
                 type="file"
-                accept={field.fileUploadTypes || "*"}
+                accept={
+                  field.fileUploadTypes
+                    ? field.fileUploadTypes
+                        .split(",")
+                        .map((ext) =>
+                          ext.trim().startsWith(".")
+                            ? ext.trim()
+                            : `.${ext.trim()}`
+                        )
+                        .join(",")
+                    : "*"
+                }
                 onChange={(e) => handleFileChange(field.id, e, field)}
                 className="flex-1"
                 disabled={uploadingFiles[field.id]}
               />
-              {uploadedFile && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeFile(field.id)}
-                  className="cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
             </div>
 
-            {uploadedFile && (
-              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
-                {uploadedFile.type.startsWith("image/") ? (
-                  <Image className="h-5 w-5 text-green-600" />
-                ) : (
-                  <FileText className="h-5 w-5 text-green-600" />
+            {/* File restrictions info - show below input */}
+            {(field.fileUploadTypes || field.maxFileSize) && (
+              <p className="text-xs text-gray-500 flex items-center gap-2">
+                {field.fileUploadTypes && (
+                  <span className="bg-gray-100 px-2 py-1 rounded">
+                    Allowed: {field.fileUploadTypes}
+                  </span>
                 )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{uploadedFile.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
+                {field.maxFileSize && (
+                  <span className="bg-gray-100 px-2 py-1 rounded">
+                    Max: {field.maxFileSize}MB
+                  </span>
+                )}
+              </p>
             )}
           </div>
         )}

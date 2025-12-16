@@ -77,8 +77,6 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       formData.append("address", basicDetails.address || "");
       formData.append("pincode", basicDetails.pincode || "");
 
-      // In handleSubmit function, update the dynamic form processing:
-
       // 3. Prepare dynamic form answers (Additional Registration Information)
       const dynamicFormAnswers: Array<{
         id: string;
@@ -93,27 +91,15 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       const dynamicFilesToUpload: Record<string, File> = {};
 
       if (basicDetails.dynamicFormAnswers?.length) {
-        console.log(
-          "Raw dynamic form answers from store:",
-          basicDetails.dynamicFormAnswers
-        );
         for (const answer of basicDetails.dynamicFormAnswers) {
           const file = basicDetails.dynamicFormFileUploads?.[answer.id];
-
-          console.log(`Processing dynamic answer ${answer.id}:`, {
-            answerValue: answer.value,
-            answerType: answer.type,
-            hasFile: !!file,
-            fileType: file?.constructor?.name,
-          });
-
           const answerObj: any = {
             id: answer.id,
             label: answer.label,
             type: answer.type,
             required: answer.required,
-            value: null, // Default to null
-            fileUrl: null,
+            // value: "", // CHANGED: Empty string as default
+            // fileUrl: null,
           };
 
           // Check if this is a file upload field
@@ -125,16 +111,18 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
             if (file instanceof File) {
               // File needs to be uploaded
               dynamicFilesToUpload[answer.id] = file;
-              answerObj.value = null; // NULL for file fields
-              answerObj.fileUrl = null;
+              // For file fields, we DON'T include value or fileUrl in the JSON
+              // The backend will get the file from formData
+              delete answerObj.value;
+              delete answerObj.fileUrl;
             } else if (answer.value && typeof answer.value === "string") {
               // Existing file URL (when editing existing registration)
               answerObj.value = answer.value;
               answerObj.fileUrl = answer.value;
             } else {
-              // No file - check if required (backend will validate)
-              answerObj.value = null; // Still NULL
-              answerObj.fileUrl = null;
+              // No file - still send the field info but without value
+              delete answerObj.value;
+              delete answerObj.fileUrl;
             }
           } else if (answer.type === "checkbox") {
             answerObj.value = Array.isArray(answer.value)
@@ -146,7 +134,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
           }
 
           // Add additional properties if they exist
-          if (answer.inputTypes) {
+          if (answer.inputTypes && !isFileField) {
             answerObj.inputTypes = answer.inputTypes;
           }
           if (answer.options) {
@@ -162,7 +150,6 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
           formData.append(fileKey, file);
         });
 
-        // Add dynamic form answers as JSON string
         formData.append(
           "dynamicFormAnswers",
           JSON.stringify(dynamicFormAnswers)
@@ -177,9 +164,6 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         value: any;
         fileUrl: string | null;
       }> = [];
-
-      // Track missing required files
-      const missingFiles: string[] = [];
 
       if (
         basicDetails.registrationCategory?.needAdditionalInfo &&
@@ -196,7 +180,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
             id: fieldId,
             label: field.label,
             type: field.type,
-            value: null,
+            value: "", // CHANGED: Empty string as default
             fileUrl: null,
           };
 
@@ -205,20 +189,20 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
               // Add file to FormData - backend expects file_<id>
               const fileKey = `file_${fieldId}`;
               formData.append(fileKey, file);
-              answerObj.value = null;
-              answerObj.fileUrl = null;
+              answerObj.value = ""; // CHANGED: Empty string
+              answerObj.fileUrl = ""; // CHANGED: Empty string
             } else if (fieldValue && typeof fieldValue === "string") {
               // Existing file URL
               answerObj.value = fieldValue;
               answerObj.fileUrl = fieldValue;
             } else {
-              // Check if file is required (validate later in backend)
-              answerObj.value = null;
-              answerObj.fileUrl = null;
+              // No file uploaded
+              answerObj.value = ""; // CHANGED: Empty string
+              answerObj.fileUrl = ""; // CHANGED: Empty string
             }
           } else if (field.type === "checkbox") {
             answerObj.value = Array.isArray(fieldValue)
-              ? fieldValue.join(", ")
+              ? fieldValue // Keep as array for checkbox
               : fieldValue || "";
           } else {
             answerObj.value = fieldValue || "";
@@ -228,19 +212,13 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         }
       }
 
-      // Add additionalAnswers as JSON string
-      formData.append("additionalAnswers", JSON.stringify(additionalAnswers));
-
-      console.log("Form submission details:", {
-        url,
-        registrationSlabId,
-        hasDynamicFiles: Object.keys(dynamicFilesToUpload).length,
-        hasSlabFiles: additionalAnswers.filter((a) => a.type === "upload")
-          .length,
-        totalFiles:
-          Object.keys(dynamicFilesToUpload).length +
-          additionalAnswers.filter((a) => a.type === "upload").length,
-      });
+      // Add additionalAnswers as JSON string (only if there are answers)
+      if (additionalAnswers.length > 0) {
+        formData.append("additionalAnswers", JSON.stringify(additionalAnswers));
+      } else {
+        // Send empty array if no additional answers
+        formData.append("additionalAnswers", "[]");
+      }
 
       // 5. Make API call with FormData
       const token = localStorage.getItem("accessToken");
@@ -263,10 +241,6 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
           text.trim().startsWith("<!DOCTYPE") ||
           text.trim().startsWith("<html")
         ) {
-          console.error(
-            "Server returned HTML error page:",
-            text.substring(0, 500)
-          );
           throw new Error("Server error: Please try again later.");
         }
 
@@ -274,7 +248,6 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         try {
           result = JSON.parse(text);
         } catch (parseError) {
-          console.error("Failed to parse response as JSON:", text);
           throw new Error("Invalid server response");
         }
       } catch (parseError) {
@@ -282,8 +255,6 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       }
 
       if (!response.ok) {
-        console.error("Backend error response:", result);
-
         let errorMessage = "Registration failed. Please try again.";
 
         if (result?.message) {
@@ -322,7 +293,7 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
           router.push(
             `/registration/payment?registrationId=${registrationId}&eventId=${basicDetails.eventId}`
           );
-          toast.success("Registration created successfully!");
+          // toast.success("Registration created successfully!");
         } else {
           throw new Error("No registration ID received");
         }
@@ -330,7 +301,6 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
         throw new Error(result.message || "Registration failed");
       }
     } catch (error) {
-      console.error("Registration Error:", error);
       setError(error instanceof Error ? error.message : "An error occurred");
 
       if (error instanceof Error) {
@@ -465,13 +435,19 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
                                 ({Math.round(file.size / 1024)} KB)
                               </span>
                             </div>
-                          ) : (
+                          ) : field.type === "checkbox" ? (
                             <Input
                               value={
                                 Array.isArray(value)
                                   ? value.join(", ")
                                   : String(value || "Not provided")
                               }
+                              disabled
+                              className="bg-gray-50"
+                            />
+                          ) : (
+                            <Input
+                              value={String(value || "Not provided")}
                               disabled
                               className="bg-gray-50"
                             />
