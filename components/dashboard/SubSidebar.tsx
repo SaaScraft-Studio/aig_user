@@ -188,7 +188,7 @@ export function SubSidebar({
       {/* Enhanced Sub Sidebar */}
       <aside
         className={cn(
-          "hidden lg:flex fixed top-[60px] left-[80px] h-[calc(100vh-60px)] border-r transition-all duration-300 z-30 bg-gradient-to-b from-blue-50/95 to-indigo-50/95 backdrop-blur-sm shadow-xl",
+          "hidden lg:flex fixed top-[60px] left-[95px] h-[calc(100vh-60px)] border-r transition-all duration-300 z-30 bg-gradient-to-b from-blue-50/95 to-indigo-50/95 backdrop-blur-sm shadow-xl",
           isOpen ? "w-64" : "w-0 overflow-hidden"
         )}
       >

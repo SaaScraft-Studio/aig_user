@@ -2,7 +2,7 @@
 
 import { FileText, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation"; // Add useSearchParams
 
 const sections = [
   {
@@ -25,12 +25,33 @@ export const MainSectionSidebar = ({
   isOpen: boolean;
 }) => {
   const router = useRouter();
+  const searchParams = useSearchParams(); // Get current URL params
+
+  // Function to build URL with current parameters
+  const buildUrl = (basePath: string) => {
+    const currentEventId = searchParams.get("eventId");
+    const currentRegistrationId = searchParams.get("registrationId");
+    const fromBadge = searchParams.get("fromBadge");
+
+    const params = new URLSearchParams();
+    if (currentEventId) params.set("eventId", currentEventId);
+    if (currentRegistrationId)
+      params.set("registrationId", currentRegistrationId);
+    if (fromBadge) params.set("fromBadge", fromBadge);
+
+    const queryString = params.toString();
+    return queryString ? `${basePath}?${queryString}` : basePath;
+  };
 
   return (
-    <aside className="hidden lg:flex fixed top-[60px] left-0 h-[calc(100vh-60px)] w-20 border-r bg-gradient-to-b from-blue-50 to-indigo-50 pt-8 pb-6 px-2 flex-col items-center z-40 shadow-lg">
+    <aside className="hidden lg:flex fixed top-[60px] left-0 h-[calc(100vh-60px)] w-25 border-r bg-gradient-to-b from-blue-50 to-indigo-50 pt-8 pb-6 px-2 flex-col items-center z-40 shadow-lg">
       {/* Enhanced Back button */}
       <button
-        onClick={() => router.push("/dashboard/events")}
+        onClick={() => {
+          // Preserve params when going back
+          const backUrl = buildUrl("/dashboard/events");
+          router.push(backUrl);
+        }}
         className="absolute top-8 left-1/2 transform -translate-x-1/2 text-gray-600 flex flex-col items-center gap-1 hover:text-blue-600 transition-all duration-200 cursor-pointer group"
       >
         <div className="p-2 rounded-lg bg-white shadow-sm group-hover:shadow-md group-hover:bg-blue-50 transition-all">
@@ -48,7 +69,11 @@ export const MainSectionSidebar = ({
           return (
             <button
               key={label}
-              onClick={() => onSectionClick(key, href)}
+              onClick={() => {
+                // Use the buildUrl function to preserve parameters
+                const urlWithParams = buildUrl(href);
+                onSectionClick(key, urlWithParams);
+              }}
               className={cn(
                 "flex flex-col items-center text-xs font-semibold transition-all duration-200 group relative cursor-pointer p-2 rounded-lg",
                 isActive
