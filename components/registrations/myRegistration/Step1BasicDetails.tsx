@@ -24,7 +24,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import CountryStateCitySelect from "@/components/common/CountryStateCitySelect";
 import { useEventStore } from "@/app/store/useEventStore";
-import { medicalCouncils } from "@/app/data/medicalCouncils";
 import { formatValidTill } from "@/app/utils/formatEventDate";
 import { ChevronDownIcon, Info } from "lucide-react";
 import DynamicFormSection from "./DynamicFormSection";
@@ -50,8 +49,6 @@ const createDynamicSchema = (
       .regex(/^\d{10}$/, { message: "Mobile must be 10 digits" }),
     designation: z.string().min(1, "Designation is required"),
     affiliation: z.string().min(1, "Affiliation is required"),
-    medicalCouncilRegistration: z.string().min(1, "Registration is required"),
-    medicalCouncilState: z.string().min(1, "Medical Council State is required"),
     mealPreference: z.string().min(1, "Please select a meal preference"),
     country: z.string().min(1, "Country is required"),
     city: z.string().min(1, "City is required"),
@@ -165,8 +162,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       mobile: basicDetails.phone || "", // Backend expects "mobile"
       designation: basicDetails.designation || "",
       affiliation: basicDetails.affiliation || "",
-      medicalCouncilRegistration: basicDetails.medicalCouncilRegistration || "",
-      medicalCouncilState: basicDetails.medicalCouncilState || "",
       mealPreference: basicDetails.mealPreference || "",
       country: basicDetails.country || "",
       city: basicDetails.city || "",
@@ -392,8 +387,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       email: data.email,
       designation: data.designation,
       affiliation: data.affiliation,
-      medicalCouncilRegistration: data.medicalCouncilRegistration,
-      medicalCouncilState: data.medicalCouncilState,
       mealPreference: data.mealPreference,
       country: data.country,
       city: data.city,
