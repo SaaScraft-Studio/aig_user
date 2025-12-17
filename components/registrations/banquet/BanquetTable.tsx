@@ -151,12 +151,13 @@ export default function BanquetTable({
     reg.paidBanquets.map((banquet) => ({
       ...banquet,
       registrationId: reg._id,
-      banquetName: reg.banquet.banquetslabName,
-      eventName: reg.event.eventName,
+      banquetName: reg.banquet?.banquetslabName || "N/A",
+      eventName: reg.event?.eventName || "N/A",
       regNum: reg.registration?.regNum || "N/A",
-      banquetStartDate: reg.banquet.startDate,
-      banquetTime: reg.banquet.time,
-      venue: reg.banquet.venue,
+      banquetStartDate: reg.banquet?.startDate || "N/A",
+      banquetTime: reg.banquet?.time || "N/A",
+      venue: reg.banquet?.venue || "N/A",
+      hasBanquetData: !!reg.banquet,
     }))
   );
 
