@@ -79,6 +79,16 @@ type Props = {
   refreshTrigger?: number;
 };
 
+// Create a new type for flattened workshop items
+type FlatWorkshopItem = {
+  workshop: Workshop;
+  registrationId: string;
+  registrationType: "Paid" | "Free";
+  paymentStatus: "Pending" | "Completed";
+  registrationDate: string;
+  workshopItemId: string; // The _id from workshops array
+};
+
 export default function WorkshopTable({
   eventId,
   registrationId,
@@ -89,7 +99,9 @@ export default function WorkshopTable({
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [apiWorkshops, setApiWorkshops] = useState<Workshop[]>([]);
+  const [flatWorkshopItems, setFlatWorkshopItems] = useState<
+    FlatWorkshopItem[]
+  >([]);
   const [registeredWorkshops, setRegisteredWorkshops] = useState<
     RegisteredWorkshop[]
   >([]);
@@ -120,30 +132,47 @@ export default function WorkshopTable({
       );
 
       const data = await response.json();
+      console.log("Fetched registered workshops data:", data);
 
       if (data && data.success && Array.isArray(data.data)) {
         const regs: RegisteredWorkshop[] = data.data;
         setRegisteredWorkshops(regs);
 
-        // ✅ CORRECT: Extract workshop details from the API response structure
-        const workshopsData = regs.flatMap(
-          (reg) =>
-            reg.workshops?.map((workshopItem) => workshopItem.workshopIds) || []
-        );
+        // ✅ FIXED: Flatten ALL workshop items (including duplicates)
+        const allFlatWorkshopItems: FlatWorkshopItem[] = [];
 
-        const uniqueWorkshops = Array.from(
-          new Map(workshopsData.map((w) => [w._id, w])).values()
-        );
-        setApiWorkshops(uniqueWorkshops);
+        regs.forEach((registration) => {
+          if (registration.workshops && Array.isArray(registration.workshops)) {
+            registration.workshops.forEach((workshopItem) => {
+              if (workshopItem.workshopIds && workshopItem.workshopIds._id) {
+                allFlatWorkshopItems.push({
+                  workshop: workshopItem.workshopIds,
+                  registrationId: registration._id,
+                  registrationType: registration.registrationType,
+                  paymentStatus: registration.paymentStatus,
+                  registrationDate: registration.createdAt,
+                  workshopItemId: workshopItem._id,
+                });
+              }
+            });
+          }
+        });
+
+        console.log("All flattened workshop items:", allFlatWorkshopItems);
+        setFlatWorkshopItems(allFlatWorkshopItems);
+
+        // Log counts for debugging
+        console.log(`Total registrations: ${regs.length}`);
+        console.log(`Total workshop items: ${allFlatWorkshopItems.length}`);
       } else {
         setRegisteredWorkshops([]);
-        setApiWorkshops([]);
+        setFlatWorkshopItems([]);
       }
     } catch (error) {
       console.error("Error fetching registered workshops:", error);
       setError("Failed to load registered workshops");
       setRegisteredWorkshops([]);
-      setApiWorkshops([]);
+      setFlatWorkshopItems([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -170,52 +199,35 @@ export default function WorkshopTable({
     }
   };
 
-  // Check if a workshop is registered
-  const isWorkshopRegistered = (workshopId: string): boolean => {
-    return registeredWorkshops.some((reg) =>
-      reg.workshops?.some(
-        (workshopItem) => workshopItem.workshopIds._id === workshopId
-      )
-    );
-  };
-
-  // Get workshop registration status
-  const getWorkshopRegistrationStatus = (workshopId: string): string => {
-    const registration = registeredWorkshops.find((reg) =>
-      reg.workshops?.some(
-        (workshopItem) => workshopItem.workshopIds._id === workshopId
-      )
-    );
-
-    if (!registration) return "Not Registered";
-    return registration.paymentStatus || "Pending";
-  };
-
   const getSortedWorkshops = () => {
-    let filtered = apiWorkshops.filter((w) =>
-      w.workshopName.toLowerCase().includes(search.toLowerCase())
+    let filtered = flatWorkshopItems.filter((item) =>
+      item.workshop.workshopName.toLowerCase().includes(search.toLowerCase())
     );
 
     if (sortBy) {
       filtered = [...filtered].sort((a, b) => {
         if (sortBy === "name") {
-          const nameA = a.workshopName.toLowerCase();
-          const nameB = b.workshopName.toLowerCase();
+          const nameA = a.workshop.workshopName.toLowerCase();
+          const nameB = b.workshop.workshopName.toLowerCase();
           return sortOrder === "asc"
             ? nameA.localeCompare(nameB)
             : nameB.localeCompare(nameA);
         } else if (sortBy === "date") {
-          const dateA = new Date(a.startDate).getTime();
-          const dateB = new Date(b.startDate).getTime();
+          const dateA = new Date(a.workshop.startDate).getTime();
+          const dateB = new Date(b.workshop.startDate).getTime();
           return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
         } else if (sortBy === "price") {
           return sortOrder === "asc"
-            ? a.amount - b.amount
-            : b.amount - a.amount;
+            ? a.workshop.amount - b.workshop.amount
+            : b.workshop.amount - a.workshop.amount;
         } else if (sortBy === "category") {
           return sortOrder === "asc"
-            ? a.workshopCategory.localeCompare(b.workshopCategory)
-            : b.workshopCategory.localeCompare(a.workshopCategory);
+            ? a.workshop.workshopCategory.localeCompare(
+                b.workshop.workshopCategory
+              )
+            : b.workshop.workshopCategory.localeCompare(
+                a.workshop.workshopCategory
+              );
         }
         return 0;
       });
@@ -246,17 +258,6 @@ export default function WorkshopTable({
       <ChevronDown className="w-4 h-4" />
     );
   };
-
-  // if (loading && !refreshing) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-64">
-  //       <div className="text-center">
-  //         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-  //         <p className="text-gray-600">Loading registered workshops...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
@@ -340,7 +341,7 @@ export default function WorkshopTable({
               <TableHead className="font-semibold text-gray-900">
                 Venue
               </TableHead>
-              <TableHead
+              {/* <TableHead
                 className="font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => toggleSort("price")}
               >
@@ -348,26 +349,28 @@ export default function WorkshopTable({
                   Price
                   {getSortIcon("price")}
                 </div>
+              </TableHead> */}
+              <TableHead className="font-semibold text-gray-900">
+                Registration Type
               </TableHead>
               <TableHead className="font-semibold text-gray-900">
-                Registration Status
+                Payment Status
               </TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {loading ? (
-              <SkeletonTable rows={5} columns={7} />
+              <SkeletonTable rows={5} columns={8} />
             ) : currentItems.length > 0 ? (
-              currentItems.map((workshop, index) => {
-                const isRegistered = isWorkshopRegistered(workshop._id);
-                const registrationStatus = getWorkshopRegistrationStatus(
-                  workshop._id
-                );
+              currentItems.map((item, index) => {
+                const workshop = item.workshop;
 
                 return (
                   <TableRow
-                    key={`${workshop._id}-${startIndex + index}`}
+                    key={`${item.registrationId}-${item.workshopItemId}-${
+                      startIndex + index
+                    }`}
                     className="hover:bg-gray-50/50"
                   >
                     <TableCell className="font-medium text-gray-900">
@@ -404,27 +407,38 @@ export default function WorkshopTable({
                         <span>{workshop.hallName}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-semibold text-[#00509E]">
+                    {/* <TableCell className="font-semibold text-[#00509E]">
                       {workshop.amount > 0
                         ? `₹${workshop.amount.toLocaleString("en-IN")}`
                         : "Free"}
+                    </TableCell> */}
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          item.registrationType === "Paid"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {item.registrationType}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          registrationStatus === "Completed"
+                          item.paymentStatus === "Completed"
                             ? "bg-green-100 text-green-800"
-                            : registrationStatus === "Pending"
+                            : item.paymentStatus === "Pending"
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-gray-100 text-gray-800"
                         }`}
                       >
-                        {isRegistered ? (
+                        {item.paymentStatus === "Completed" ? (
                           <CheckCircle className="w-3 h-3 mr-1" />
                         ) : (
                           <AlertCircle className="w-3 h-3 mr-1" />
                         )}
-                        {registrationStatus}
+                        {item.paymentStatus}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -433,7 +447,7 @@ export default function WorkshopTable({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center py-8 text-gray-500"
                 >
                   <div className="flex flex-col items-center">
@@ -484,6 +498,14 @@ export default function WorkshopTable({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Debug Info (remove in production) */}
+      <div className="mt-4 text-xs text-gray-500">
+        <p>
+          Showing {flatWorkshopItems.length} workshop registrations from{" "}
+          {registeredWorkshops.length} registration entries
+        </p>
       </div>
     </div>
   );

@@ -72,7 +72,7 @@ export const MainSectionSidebar = ({
               onClick={() => {
                 // Use the buildUrl function to preserve parameters
                 const urlWithParams = buildUrl(href);
-                onSectionClick(key, urlWithParams);
+                // onSectionClick(key, urlWithParams);
               }}
               className={cn(
                 "flex flex-col items-center text-xs font-semibold transition-all duration-200 group relative cursor-pointer p-2 rounded-lg",

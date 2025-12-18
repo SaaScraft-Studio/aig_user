@@ -1101,7 +1101,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       <div className="text-center pt-4">
         <Button
           type="submit"
-          className="bg-[#00509E] hover:bg-[#003B73] px-8"
+          className="bg-[#00509E] hover:bg-[#003B73] px-8 cursor-pointer"
           disabled={loading || categories.length === 0}
         >
           {loading ? "Loading..." : "Save & Continue"}
