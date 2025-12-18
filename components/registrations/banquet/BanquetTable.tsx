@@ -108,7 +108,6 @@ export default function BanquetTable({
       );
 
       const data = await response.json();
-      console.log("Fetched paid banquets:", data);
 
       if (data.success && Array.isArray(data.data)) {
         setBanquetRegistrations(data.data);
