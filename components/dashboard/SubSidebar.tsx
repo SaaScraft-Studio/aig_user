@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Suspense, useEffect, useState } from "react";
 import Loading from "../common/Loading";
+import { useEventStore } from "@/app/store/useEventStore";
 
 type SidebarItem = {
   label: string;
@@ -77,8 +78,7 @@ export function SubSidebar({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [registrationSettings, setRegistrationSettings] =
-    useState<RegistrationSettings | null>(null);
+  const { registrationSettings, fetchRegistrationSettings } = useEventStore();
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [settingsFetched, setSettingsFetched] = useState(false); // Add this state
 
@@ -92,70 +92,36 @@ export function SubSidebar({
     ? pathname.split("/").pop() // This should extract the eventId from the URL
     : searchParams.get("eventId");
   const registrationId = searchParams.get("registrationId");
+  const targetEventId = eventId || urlEventId;
 
-  // Fetch registration settings
   useEffect(() => {
-    const fetchRegistrationSettings = async () => {
-      const targetEventId = eventId || urlEventId;
-
+    const loadRegistrationSettings = async () => {
       if (!targetEventId) {
-        setRegistrationSettings(null);
         return;
       }
 
+      setLoadingSettings(true);
       try {
-        setLoadingSettings(true);
-        const token = localStorage.getItem("accessToken");
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${targetEventId}/registration-settings`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: token ? `Bearer ${token}` : "",
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data && data.data.length > 0) {
-            setRegistrationSettings(data.data[0]);
-          } else {
-            setRegistrationSettings({} as RegistrationSettings);
-          }
-        } else {
-          setRegistrationSettings({} as RegistrationSettings);
-        }
+        await fetchRegistrationSettings(targetEventId);
       } catch (error) {
         console.error("Error fetching registration settings:", error);
-        setRegistrationSettings({} as RegistrationSettings);
       } finally {
         setLoadingSettings(false);
       }
     };
 
-    fetchRegistrationSettings();
-  }, [eventId, urlEventId]);
+    loadRegistrationSettings();
+  }, [targetEventId, fetchRegistrationSettings]);
 
-  // ✅ FIXED: Filter sidebar items based on registration settings
   const filteredItems = items.filter((item) => {
-    // If settings are still loading, show nothing or loading state
     if (loadingSettings) return false;
+    if (!registrationSettings) return false;
 
-    // If settings fetch completed but no settings object, hide all items
-    if (settingsFetched && !registrationSettings) return false;
-
-    // If we have settings but the specific key doesn't exist or is false, hide the item
-    if (registrationSettings) {
-      const settingValue =
-        registrationSettings[item.settingKey as keyof RegistrationSettings];
-      return settingValue === true;
-    }
-
-    // Default: hide items if no settings available
-    return false;
+    const settingValue =
+      registrationSettings[item.settingKey as keyof RegistrationSettings];
+    return settingValue === true;
   });
+  
 
   // Function to build URLs with preserved parameters
   const buildUrl = (basePath: string) => {
