@@ -59,23 +59,16 @@ export interface DynamicFormAnswer {
 
 // FIXED: Main form type to match backend field names
 export type BasicDetails = {
-  // Event info
   eventId: any;
   eventName: any;
-
-  // Personal details (matching backend field names)
   prefix?: string;
   fullName: string; // Frontend uses fullName, but backend expects "name"
   email: string;
   phone: string; // Frontend uses phone, but backend expects "mobile"
-
-  // Professional details
   affiliation?: string;
   designation?: string;
   medicalCouncilRegistration: string;
   medicalCouncilState?: string;
-
-  // Address details
   address?: string;
   country: string;
   state?: string;
