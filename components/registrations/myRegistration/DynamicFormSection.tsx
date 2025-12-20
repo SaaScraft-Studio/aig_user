@@ -102,7 +102,7 @@ export default function DynamicFormSection({
       // IMPORTANT: Set form value to null
       setValue(`dynamic_${field.id}`, null, { shouldValidate: true });
 
-      toast.success(`File uploaded: ${file.name}`);
+      // toast.success(`File uploaded: ${file.name}`);
     } catch (error) {
       toast.error("Failed to upload file");
     } finally {

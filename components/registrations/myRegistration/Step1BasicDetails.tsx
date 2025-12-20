@@ -162,7 +162,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       mobile: basicDetails.phone || "", // Backend expects "mobile"
       designation: basicDetails.designation || "",
       affiliation: basicDetails.affiliation || "",
-      mealPreference: basicDetails.mealPreference || "",
+      mealPreference: "",
       country: basicDetails.country || "",
       city: basicDetails.city || "",
       state: basicDetails.state || "",
@@ -442,7 +442,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     }
 
     return (
-      <div className="mt-8 space-y-6">
+      <div className="mt-2 space-y-8">
         <div>
           <h3 className="text-lg font-semibold text-[#00509E] mb-4">
             Additional Information Required
@@ -689,37 +689,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         setMealPreferences(data.data);
       } else {
         toast.error("Failed to load meal preferences");
-        // Fallback to default options if API fails
-        setMealPreferences([
-          {
-            _id: "1",
-            mealName: "Vegetarian",
-            status: "Active",
-          } as MealPreference,
-          {
-            _id: "2",
-            mealName: "Non-Vegetarian",
-            status: "Active",
-          } as MealPreference,
-          { _id: "3", mealName: "Vegan", status: "Active" } as MealPreference,
-        ]);
+        setMealPreferences([]);
       }
     } catch (err) {
       toast.error("Error loading meal preferences");
-      // Fallback to default options
-      setMealPreferences([
-        {
-          _id: "1",
-          mealName: "Vegetarian",
-          status: "Active",
-        } as MealPreference,
-        {
-          _id: "2",
-          mealName: "Non-Vegetarian",
-          status: "Active",
-        } as MealPreference,
-        { _id: "3", mealName: "Vegan", status: "Active" } as MealPreference,
-      ]);
+      setMealPreferences([]);
     } finally {
       setLoadingMeals(false);
     }
@@ -897,21 +871,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                   <SelectValue placeholder="Select Meal Preference" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mealPreferences.length > 0 ? (
-                    mealPreferences.map((meal) => (
-                      <SelectItem key={meal._id} value={meal.mealName}>
-                        {meal.mealName}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <>
-                      <SelectItem value="Vegetarian">Vegetarian</SelectItem>
-                      <SelectItem value="Non-Vegetarian">
-                        Non-Vegetarian
-                      </SelectItem>
-                      <SelectItem value="Vegan">Vegan</SelectItem>
-                    </>
-                  )}
+                  {mealPreferences.map((meal) => (
+                    <SelectItem key={meal._id} value={meal.mealName}>
+                      {meal.mealName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
@@ -981,109 +945,124 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         </div>
       ) : null}
 
-      {/* Registration Category Section - SIMPLIFIED */}
-      <div className="space-y-4">
-        <Label className="font-medium">
-          Select Registration Category <span className="text-red-600">*</span>
-        </Label>
+      {/* Registration Category Section - SIMPLIFIED with border */}
+      <div className="space-y-4 p-6 border rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <Label className="font-medium text-lg">
+            Select Registration Category <span className="text-red-600">*</span>
+          </Label>
+          <div className="text-sm text-gray-500">
+            Choose your registration type
+          </div>
+        </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-8 border border-gray-100 rounded-md bg-gray-50">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00509E] mx-auto mb-2"></div>
               <p className="text-gray-600">Loading registration options...</p>
             </div>
           </div>
         ) : categories.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8 border border-gray-100 rounded-md bg-gray-50">
             <p className="text-gray-500">
               No registration options available for this event.
             </p>
           </div>
         ) : (
-          <RadioGroup
-            onValueChange={(val) => {
-              const category = JSON.parse(val);
-              handleCategorySelect(category);
-            }}
-            className="space-y-3"
-          >
-            {categories.map((cat) => (
-              <Label
-                key={cat._id}
-                htmlFor={cat._id}
-                className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50"
-              >
-                <div className="flex items-center gap-3">
-                  <RadioGroupItem value={JSON.stringify(cat)} id={cat._id} />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      {cat.slabName}
-                      {cat.needAdditionalInfo && (
-                        <div className="flex items-center gap-1 text-blue-600">
-                          <Info className="h-3 w-3" />
-                          <span className="text-xs">
-                            Additional info required
-                          </span>
-                        </div>
-                      )}
+          <div className="border border-gray-100 rounded-md overflow-hidden">
+            <RadioGroup
+              onValueChange={(val) => {
+                const category = JSON.parse(val);
+                handleCategorySelect(category);
+              }}
+              className="divide-y divide-gray-100"
+            >
+              {categories.map((cat) => (
+                <Label
+                  key={cat._id}
+                  htmlFor={cat._id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value={JSON.stringify(cat)} id={cat._id} />
+                    <div>
+                      <div className="font-medium flex flex-wrap items-center gap-2">
+                        {cat.slabName}
+                        {cat.needAdditionalInfo && (
+                          <div className="flex items-center gap-1 text-blue-600">
+                            <Info className="h-3 w-3" />
+                            <span className="text-xs">
+                              Additional info required
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="text-right space-y-2">
-                  <div className="text-[20px] font-semibold text-green-600">
-                    ₹ {cat.amount.toLocaleString("en-IN")}.00
-                  </div>
-                  {cat.endDate && (
-                    <div className="text-[12px] text-gray-500 font-medium">
-                      {formatValidTill(cat.endDate)}
+                  <div className="text-right space-y-2 mt-2 sm:mt-0">
+                    <div className="text-[20px] font-semibold text-green-600">
+                      ₹ {cat.amount.toLocaleString("en-IN")}.00
                     </div>
-                  )}
-                </div>
-              </Label>
-            ))}
-          </RadioGroup>
+                    {cat.endDate && (
+                      <div className="text-[12px] text-gray-500 font-medium">
+                        {formatValidTill(cat.endDate)}
+                      </div>
+                    )}
+                  </div>
+                </Label>
+              ))}
+            </RadioGroup>
+          </div>
         )}
         {errors.registrationCategory && (
-          <p className="text-sm text-red-600">
-            {typeof errors.registrationCategory.message === "string"
-              ? errors.registrationCategory.message
-              : "This field is required"}
-          </p>
+          <div className="mt-3 p-3 border border-red-200 rounded-md bg-red-50">
+            <p className="text-sm text-red-600">
+              {typeof errors.registrationCategory.message === "string"
+                ? errors.registrationCategory.message
+                : "This field is required"}
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Render Additional Fields - SIMPLIFIED */}
-      {renderAdditionalFields()}
+      {/* Render Additional Fields - SIMPLIFIED with border */}
+      {renderAdditionalFields() && (
+        <div className="p-6 border rounded-lg">{renderAdditionalFields()}</div>
+      )}
 
       {/* Terms & Conditions */}
-      <div>
-        <div className="flex items-start gap-3">
+      <div className="mt-6">
+        <div className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg">
           <Controller
             name="acceptedTerms"
             control={control}
             render={({ field }) => (
-              <label className="flex items-start gap-3 cursor-pointer">
+              <label className="flex items-start gap-3 cursor-pointer flex-1">
                 <input
                   type="checkbox"
                   checked={!!field.value}
                   onChange={(e) => field.onChange(e.target.checked)}
-                  className="mt-0.5 h-4 w-4"
+                  className="mt-0.5 h-4 w-4 text-[#00509E] border-gray-300 rounded focus:ring-[#00509E]"
                 />
-                <span className="text-sm">
-                  I accept the{" "}
-                  <a
-                    href={
-                      currentEvent?._id
-                        ? `/events/${currentEvent._id}/terms`
-                        : "#"
-                    }
-                    target="_blank"
-                    className="text-[#00509E] underline"
-                  >
-                    Terms & Conditions
-                  </a>
-                </span>
+                <div className="flex-1">
+                  <span className="text-sm text-gray-900">
+                    I accept the{" "}
+                    <a
+                      href={
+                        currentEvent?._id
+                          ? `/events/${currentEvent._id}/terms`
+                          : "#"
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#00509E] hover:text-[#003B73] font-medium underline transition-colors"
+                    >
+                      Terms & Conditions
+                    </a>{" "}
+                    and Cancellation Policy
+                  </span>
+                </div>
               </label>
             )}
           />
