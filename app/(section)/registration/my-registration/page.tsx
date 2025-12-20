@@ -144,15 +144,11 @@ function RegistrationContent() {
                 email: user.email || "",
                 affiliation: user.affiliation ?? "",
                 designation: user.designation ?? "",
-                medicalCouncilState: user.medicalCouncilState ?? "",
-                medicalCouncilRegistration:
-                  user.medicalCouncilRegistration ?? "",
-                gender: user.gender ?? "male",
                 country: user.country ?? "",
                 city: user.city ?? "",
                 state: user.state ?? "",
                 pincode: user.pincode ?? "",
-                mealPreference: user.mealPreference ?? "veg",
+                gender: user.gender ?? "",
               });
             }
 
