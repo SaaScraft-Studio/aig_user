@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -142,6 +142,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     createDynamicSchema(null, dynamicFormFields)
   );
   const [loadingDynamicForm, setLoadingDynamicForm] = useState(false);
+  const shouldReinitializeRef = useRef(true);
 
   // In Step1BasicDetails component
   const defaultFormValues = useMemo(() => {
@@ -177,8 +178,10 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     defaultValues: defaultFormValues,
   });
 
-  // Prefill form - UPDATED (run only once)
   useEffect(() => {
+    // Only reinitialize when we have data and flag is true
+    if (!shouldReinitializeRef.current) return;
+
     const defaultValues: any = {
       // Basic fields
       name: basicDetails.fullName || "",
@@ -212,8 +215,10 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       });
     }
 
+    console.log("Reinitializing form with saved data");
     reset(defaultValues);
 
+    // Set selected category
     if (basicDetails.registrationCategory) {
       setSelectedCategory(basicDetails.registrationCategory);
       const newSchema = createDynamicSchema(
@@ -223,9 +228,9 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       setDynamicSchema(newSchema);
     }
 
-    // Remove basicDetails from dependencies since we only want to run this once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reset, dynamicFormFields]); // Only reset and dynamicFormFields as dependencies
+    // Reset the flag after reinitialization
+    shouldReinitializeRef.current = false;
+  }, [basicDetails, reset, dynamicFormFields]);
 
   // Update schema when category changes
   const updateDynamicSchema = (category: RegistrationCategory | null) => {
@@ -422,6 +427,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       eventName: currentEvent?.eventName || "",
     });
 
+    shouldReinitializeRef.current = true;
     toast.success("Details saved!");
     onNext();
   };
@@ -684,6 +690,16 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
 
     fetchRegistrationSlabs();
   }, [currentEvent?._id]);
+
+  useEffect(() => {
+    // When component mounts, allow reinitialization
+    shouldReinitializeRef.current = true;
+
+    return () => {
+      // When component unmounts, reset the flag
+      shouldReinitializeRef.current = true;
+    };
+  }, []);
 
   // Fetch meal preferences function
   const fetchMealPreferences = async (eventId: string) => {
@@ -994,6 +1010,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
                 const category = JSON.parse(val);
                 handleCategorySelect(category);
               }}
+              value={
+                watch("registrationCategory")
+                  ? JSON.stringify(watch("registrationCategory"))
+                  : ""
+              } // Use watch instead of basicDetails
               className="divide-y divide-gray-100"
             >
               {categories.map((cat) => (
