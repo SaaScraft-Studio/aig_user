@@ -58,13 +58,18 @@ const createDynamicSchema = (
     acceptedTerms: z.boolean().refine((v) => v === true, {
       message: "You must accept the terms and conditions",
     }),
-    registrationCategory: z.object({
-      _id: z.string(),
-      slabName: z.string(),
-      amount: z.number(),
-      needAdditionalInfo: z.boolean().optional(),
-      additionalFields: z.array(z.any()).optional(),
-    }),
+    registrationCategory: z
+      .object({
+        _id: z.string(),
+        slabName: z.string(),
+        amount: z.number(),
+        needAdditionalInfo: z.boolean().optional(),
+        additionalFields: z.array(z.any()).optional(),
+      })
+      .nullable()
+      .refine((val) => val !== null, {
+        message: "Please select a registration category",
+      }),
   };
 
   // Add category additional fields
