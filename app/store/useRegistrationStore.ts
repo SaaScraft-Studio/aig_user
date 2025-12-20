@@ -202,7 +202,7 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
   // Set dynamic form fields
   setDynamicFormFields: (fields) => set({ dynamicFormFields: fields }),
 
-  // UPDATED: Update dynamic form answer with fileUrl support
+  // UPDATED: Update dynamic form answer with fileUrl support - FIXED
   updateDynamicFormAnswer: (id, value, fileUrl) =>
     set((state) => {
       const existingAnswers = state.basicDetails.dynamicFormAnswers || [];
@@ -256,33 +256,21 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
       };
     }),
 
-  // Set dynamic form file upload
+  // Set dynamic form file upload - FIXED VERSION
   setDynamicFormFileUpload: (id, file) =>
     set((state) => {
       const currentUploads = state.basicDetails.dynamicFormFileUploads || {};
+
+      // Only update the file uploads, don't touch answers
       const updatedUploads = file
         ? { ...currentUploads, [id]: file }
         : Object.fromEntries(
             Object.entries(currentUploads).filter(([key]) => key !== id)
           );
 
-      // Also update the answer value if needed
-      const existingAnswers = state.basicDetails.dynamicFormAnswers || [];
-      const answerIndex = existingAnswers.findIndex((a) => a.id === id);
-
-      let updatedAnswers = [...existingAnswers];
-      if (answerIndex >= 0) {
-        updatedAnswers[answerIndex] = {
-          ...updatedAnswers[answerIndex],
-          value: file ? null : updatedAnswers[answerIndex].value,
-          fileUrl: null, // Clear fileUrl when file is removed
-        };
-      }
-
       return {
         basicDetails: {
           ...state.basicDetails,
-          dynamicFormAnswers: updatedAnswers,
           dynamicFormFileUploads: updatedUploads,
         },
       };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -143,6 +143,27 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
   );
   const [loadingDynamicForm, setLoadingDynamicForm] = useState(false);
 
+  // In Step1BasicDetails component
+  const defaultFormValues = useMemo(() => {
+    return {
+      name: basicDetails.fullName || "",
+      prefix: basicDetails.prefix || "",
+      gender: basicDetails.gender || "",
+      email: basicDetails.email || "",
+      mobile: basicDetails.phone || "",
+      designation: basicDetails.designation || "",
+      affiliation: basicDetails.affiliation || "",
+      mealPreference: basicDetails.mealPreference || "",
+      country: basicDetails.country || "",
+      city: basicDetails.city || "",
+      state: basicDetails.state || "",
+      address: basicDetails.address || "",
+      pincode: basicDetails.pincode || "",
+      acceptedTerms: basicDetails.acceptedTerms || false,
+      registrationCategory: basicDetails.registrationCategory || null,
+    };
+  }, []); // Empty dependency array - only compute once
+
   const {
     register,
     handleSubmit,
@@ -153,16 +174,21 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     formState: { errors },
   } = useForm<FormDataType>({
     resolver: zodResolver(dynamicSchema),
-    defaultValues: {
-      // Note: Backend expects "name" not "fullName"
+    defaultValues: defaultFormValues,
+  });
+
+  // Prefill form - UPDATED (run only once)
+  useEffect(() => {
+    const defaultValues: any = {
+      // Basic fields
       name: basicDetails.fullName || "",
       prefix: basicDetails.prefix || "",
       gender: basicDetails.gender || "",
       email: basicDetails.email || "",
-      mobile: basicDetails.phone || "", // Backend expects "mobile"
+      mobile: basicDetails.phone || "",
       designation: basicDetails.designation || "",
       affiliation: basicDetails.affiliation || "",
-      mealPreference: "",
+      mealPreference: basicDetails.mealPreference || "",
       country: basicDetails.country || "",
       city: basicDetails.city || "",
       state: basicDetails.state || "",
@@ -170,16 +196,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       pincode: basicDetails.pincode || "",
       acceptedTerms: basicDetails.acceptedTerms || false,
       registrationCategory: basicDetails.registrationCategory || null,
-    } as any,
-  });
-
-  // Prefill form - CORRECTED
-  useEffect(() => {
-    const defaultValues: any = {
-      ...basicDetails,
-      // Map frontend field names to backend field names
-      name: basicDetails.fullName || "",
-      mobile: basicDetails.phone || "",
     };
 
     // Add additional answers
@@ -206,7 +222,10 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       );
       setDynamicSchema(newSchema);
     }
-  }, [basicDetails, reset, dynamicFormFields]);
+
+    // Remove basicDetails from dependencies since we only want to run this once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reset, dynamicFormFields]); // Only reset and dynamicFormFields as dependencies
 
   // Update schema when category changes
   const updateDynamicSchema = (category: RegistrationCategory | null) => {
@@ -425,11 +444,10 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
     }
   };
 
-  // Fixed file upload handler
+  // Fixed file upload handler - UPDATED
   const handleDynamicFileUpload = (id: string, file: File | null) => {
+    console.log("Store updated, setting form value...");
     setDynamicFormFileUpload(id, file);
-    // Set form value to null, NOT the File object
-    setValue(`dynamic_${id}`, null, { shouldValidate: true });
   };
 
   // Render additional fields - SIMPLIFIED UI

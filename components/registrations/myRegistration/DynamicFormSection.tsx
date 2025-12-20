@@ -70,7 +70,7 @@ export default function DynamicFormSection({
       return;
     }
 
-    // In handleFileChange function, update the validation:
+    // Validate file type
     if (field.fileUploadTypes) {
       const allowedExtensions = field.fileUploadTypes
         .split(",")
@@ -97,12 +97,8 @@ export default function DynamicFormSection({
 
     try {
       // Store file separately, NOT in form value
+      console.log("Uploading file for field:", id, file.name);
       onFileUpload(id, file);
-
-      // IMPORTANT: Set form value to null
-      setValue(`dynamic_${field.id}`, null, { shouldValidate: true });
-
-      // toast.success(`File uploaded: ${file.name}`);
     } catch (error) {
       toast.error("Failed to upload file");
     } finally {
