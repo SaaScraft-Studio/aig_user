@@ -9,6 +9,8 @@ import {
   PanelRight,
   MonitorPlay,
   Utensils,
+  BookOpen,
+  UserPen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Suspense, useEffect, useState } from "react";
@@ -47,6 +49,20 @@ const sidebarMap: Record<string, SidebarItem[]> = {
       path: "/registration/banquet",
       icon: Utensils,
       settingKey: "banquetRegistration",
+    },
+  ],
+  abstracts: [
+    {
+      label: "My Abstracts",
+      path: "/abstract/my-abstracts",
+      icon: BookOpen,
+      settingKey: "abstractRegistration",
+    },
+    {
+      label: "Authors",
+      path: "/abstract/authors",
+      icon: UserPen,
+      settingKey: "abstractRegistration",
     },
   ],
 };
@@ -94,8 +110,12 @@ export function SubSidebar({
   const registrationId = searchParams.get("registrationId");
   const targetEventId = eventId || urlEventId;
 
+  // Update the useEffect to only fetch registration settings for registration section
   useEffect(() => {
     const loadRegistrationSettings = async () => {
+      // Only fetch registration settings for registrations section
+      if (section !== "registrations") return;
+
       if (!targetEventId) {
         return;
       }
@@ -107,13 +127,21 @@ export function SubSidebar({
         console.error("Error fetching registration settings:", error);
       } finally {
         setLoadingSettings(false);
+        setSettingsFetched(true); // Add this line
       }
     };
 
     loadRegistrationSettings();
-  }, [targetEventId, fetchRegistrationSettings]);
+  }, [targetEventId, fetchRegistrationSettings, section]); // Add section to dependencies
 
+  // Update the filteredItems logic
   const filteredItems = items.filter((item) => {
+    // For abstracts section, show all items without filtering
+    if (section === "abstracts") {
+      return true;
+    }
+
+    // For registrations section, apply filtering based on settings
     if (loadingSettings) return false;
     if (!registrationSettings) return false;
 
@@ -121,7 +149,6 @@ export function SubSidebar({
       registrationSettings[item.settingKey as keyof RegistrationSettings];
     return settingValue === true;
   });
-  
 
   // Function to build URLs with preserved parameters
   const buildUrl = (basePath: string) => {
@@ -165,13 +192,13 @@ export function SubSidebar({
           )}
         >
           {/* Header */}
-          <div className="p-6 border-b border-blue-100/50 bg-white/80">
-            <h3 className="font-semibold text-gray-800 text-lg">
+          <div className="p-4 border-b border-blue-100/50 bg-white/80">
+            <h3 className="font-semibold text-gray-800 text-lg text-center mt-4">
               {section.charAt(0).toUpperCase() + section.slice(1)}
             </h3>
-            <p className="text-sm text-gray-600 mt-1">
+            {/* <p className="text-sm text-gray-600 mt-1">
               Manage your registration
-            </p>
+            </p> */}
             {loadingSettings && (
               <p className="text-xs text-blue-600 mt-1">Loading settings...</p>
             )}

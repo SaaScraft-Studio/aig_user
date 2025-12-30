@@ -131,7 +131,7 @@ export default function ExistingRegistrationView({
                 <p className="font-medium text-sm sm:text-base">{gender}</p>
               </div>
               <div>
-                <label className="text-xs sm:text-sm text-gray-600">
+                {/* <label className="text-xs sm:text-sm text-gray-600">
                   Designation
                 </label>
                 <p className="font-medium text-sm sm:text-base">
@@ -144,7 +144,7 @@ export default function ExistingRegistrationView({
                 </label>
                 <p className="font-medium text-sm sm:text-base">
                   {affiliation || "Not provided"}
-                </p>
+                </p> */}
               </div>
             </div>
           </div>
