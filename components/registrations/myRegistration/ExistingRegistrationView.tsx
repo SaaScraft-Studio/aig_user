@@ -26,8 +26,6 @@ export default function ExistingRegistrationView({
     mobile,
     designation,
     affiliation,
-    medicalCouncilState,
-    medicalCouncilRegistration,
     mealPreference,
     country,
     city,

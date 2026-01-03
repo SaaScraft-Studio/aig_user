@@ -44,8 +44,6 @@ export type Profile = {
   prefix: string;
   designation: string;
   affiliation: string;
-  medicalCouncilState: string;
-  medicalCouncilRegistration: string;
   phone: string;
   email: string;
   country: string;
@@ -73,13 +71,6 @@ const profileSchema = z.object({
     .optional()
     .or(z.literal("")),
   affiliation: z.string().min(1, "Affiliation is required").max(50),
-  medicalCouncilState: z.string().optional().or(z.literal("")),
-  medicalCouncilRegistration: z
-    .string()
-    .min(3, "Minimum 3 characters")
-    .max(50, "Maximum 50 characters")
-    .optional()
-    .or(z.literal("")),
   phone: z
     .string()
     .regex(/^\d{10}$/, { message: "Mobile number must be 10 digits" }),
@@ -228,11 +219,6 @@ export default function MyProfileForm({
       formData.append("prefix", data.prefix);
       formData.append("designation", data.designation || "");
       formData.append("affiliation", data.affiliation);
-      formData.append("medicalCouncilState", data.medicalCouncilState || "");
-      formData.append(
-        "medicalCouncilRegistration",
-        data.medicalCouncilRegistration || ""
-      );
       formData.append("mobile", data.phone);
       formData.append("email", data.email);
       formData.append("country", data.country);
@@ -470,21 +456,6 @@ export default function MyProfileForm({
                 required
                 editing={isEditing}
                 error={errors.affiliation}
-              />
-              <SelectField
-                control={control}
-                name="medicalCouncilState"
-                label="Medical Council State"
-                options={medicalCouncils}
-                editing={isEditing}
-                error={errors.medicalCouncilState}
-              />
-              <InputField
-                control={control}
-                name="medicalCouncilRegistration"
-                label="Medical Council Registration"
-                editing={isEditing}
-                error={errors.medicalCouncilRegistration}
               />
             </div>
           </CardContent>

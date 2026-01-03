@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,15 @@ import CountryStateCitySelect from "../common/CountryStateCitySelect";
 import ReCAPTCHA from "react-google-recaptcha";
 import { cn } from "@/lib/utils";
 import { CldImage } from "next-cloudinary";
+import { medicalCouncils } from "@/app/data/medicalCouncils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 countries.registerLocale(enLocale);
 
@@ -40,12 +49,26 @@ const schema = z
     prefix: z.string().min(1, "Prefix is required"),
     name: z.string().min(1, "Full name is required"),
     affiliation: z.string().min(1, "Affiliation is required"),
+    designation: z.string().min(1, "Designation is required"),
     email: z.string().email("Please enter a valid email address"),
     mobile: z
       .string()
       .min(1, "Mobile number is required")
       .regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit mobile number"),
+    mciRegistered: z.enum(["yes", "no"]),
+    mciNumber: z.string().optional(),
+    mciState: z.string().optional(),
+
+    department: z.string().min(1, "Department is required"),
+    gender: z.string().min(1, "Gender is required"),
+    address: z.string().min(1, "Address is required"),
     country: z.string().min(1, "Country is required"),
+    state: z.string().min(1, "State is required"),
+    city: z.string().min(1, "City is required"),
+    pincode: z
+      .string()
+      .min(1, "Pincode is required")
+      .regex(/^\d{5,6}$/, "Please enter a valid pincode"),
     password: z
       .string()
       .min(1, "Password is required")
@@ -68,6 +91,25 @@ const schema = z
   .refine((data) => data.password === data.confirmPassword, {
     path: ["confirmPassword"],
     message: "Passwords do not match",
+  })
+  .superRefine((data, ctx) => {
+    if (data.mciRegistered === "yes") {
+      if (!data.mciNumber) {
+        ctx.addIssue({
+          path: ["mciNumber"],
+          message: "MCI registration number is required",
+          code: z.ZodIssueCode.custom,
+        });
+      }
+
+      if (!data.mciState) {
+        ctx.addIssue({
+          path: ["mciState"],
+          message: "MCI registration state is required",
+          code: z.ZodIssueCode.custom,
+        });
+      }
+    }
   });
 
 type FormData = z.infer<typeof schema>;
@@ -98,9 +140,19 @@ export default function Signup() {
       prefix: "",
       name: "",
       affiliation: "",
+      designation: "",
       email: "",
       mobile: "",
+      mciRegistered: "no",
+      mciNumber: "",
+      mciState: "",
+      department: "",
+      gender: "",
+      address: "",
       country: "",
+      state: "",
+      city: "",
+      pincode: "",
       password: "",
       confirmPassword: "",
       termAndCondition: false,
@@ -211,15 +263,15 @@ export default function Signup() {
             >
               {/* Header */}
               <div className="text-center mb-6">
-                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                {/* <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                   <User className="w-8 h-8 text-[#00509E]" />
-                </div>
+                </div> */}
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                   Create Account
                 </h1>
-                <p className="text-gray-600 text-sm sm:text-base">
+                {/* <p className="text-gray-600 text-sm sm:text-base">
                   Join us today and start your journey
-                </p>
+                </p> */}
               </div>
 
               {/* Success/Error States */}
@@ -270,7 +322,7 @@ export default function Signup() {
                         Prefix <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        {/* <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
                         <Input
                           id="prefix"
                           placeholder="Mr / Ms / Dr / Prof"
@@ -279,10 +331,10 @@ export default function Signup() {
                             register("prefix").onChange(e);
                             handleInputChange("prefix");
                           }}
-                          className={cn(
-                            "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                            errors.prefix ? "border-red-500" : "border-gray-300"
-                          )}
+                          // className={cn(
+                          //   "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
+                          //   errors.prefix ? "border-red-500" : "border-gray-300"
+                          // )}
                         />
                       </div>
                       {errors.prefix && (
@@ -302,7 +354,7 @@ export default function Signup() {
                         Full Name <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        {/* <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
                         <Input
                           id="fullname"
                           placeholder="Enter your full name"
@@ -311,10 +363,10 @@ export default function Signup() {
                             register("name").onChange(e);
                             handleInputChange("name");
                           }}
-                          className={cn(
-                            "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                            errors.name ? "border-red-500" : "border-gray-300"
-                          )}
+                          // className={cn(
+                          //   "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
+                          //   errors.name ? "border-red-500" : "border-gray-300"
+                          // )}
                         />
                       </div>
                       {errors.name && (
@@ -325,109 +377,324 @@ export default function Signup() {
                       )}
                     </div>
                   </div>
-
-                  {/* Affiliation */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="affiliation"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Affiliation <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="affiliation"
-                        placeholder="Your company, institution, or organization"
-                        {...register("affiliation")}
-                        onChange={(e) => {
-                          register("affiliation").onChange(e);
-                          handleInputChange("affiliation");
-                        }}
-                        className={cn(
-                          "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                          errors.affiliation
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        )}
-                      />
-                    </div>
-                    {errors.affiliation && (
-                      <p className="text-sm text-red-600 flex items-center gap-1">
-                        <XCircle className="w-3 h-3" />
-                        {errors.affiliation.message}
-                      </p>
-                    )}
-                  </div>
-
                   {/* Email */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="email"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Email <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="your.email@example.com"
-                        {...register("email")}
-                        onChange={(e) => {
-                          register("email").onChange(e);
-                          handleInputChange("email");
-                        }}
-                        className={cn(
-                          "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                          errors.email ? "border-red-500" : "border-gray-300"
-                        )}
-                      />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="email"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Email <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        {/* <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your.email@example.com"
+                          {...register("email")}
+                          onChange={(e) => {
+                            register("email").onChange(e);
+                            handleInputChange("email");
+                          }}
+                          // className={cn(
+                          //   "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
+                          //   errors.email ? "border-red-500" : "border-gray-300"
+                          // )}
+                        />
+                      </div>
+                      {errors.email && (
+                        <p className="text-sm text-red-600 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          {errors.email.message}
+                        </p>
+                      )}
                     </div>
-                    {errors.email && (
+
+                    {/* Mobile */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="mobile"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Mobile Number <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        {/* <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
+                        <Input
+                          id="mobile"
+                          type="tel"
+                          placeholder="10-digit mobile number"
+                          {...register("mobile")}
+                          onChange={(e) => {
+                            const formatted = formatMobile(e.target.value);
+                            e.target.value = formatted;
+                            register("mobile").onChange(e);
+                            handleInputChange("mobile");
+                          }}
+                          // className={cn(
+                          //   "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
+                          //   errors.mobile ? "border-red-500" : "border-gray-300"
+                          // )}
+                        />
+                      </div>
+                      {errors.mobile && (
+                        <p className="text-sm text-red-600 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          {errors.mobile.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Affiliation */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="affiliation"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Affiliation <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        {/* <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
+                        <Input
+                          id="affiliation"
+                          placeholder="Your company, institution, or organization"
+                          {...register("affiliation")}
+                          onChange={(e) => {
+                            register("affiliation").onChange(e);
+                            handleInputChange("affiliation");
+                          }}
+                          // className={cn(
+                          //   "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
+                          //   errors.affiliation
+                          //     ? "border-red-500"
+                          //     : "border-gray-300"
+                          // )}
+                        />
+                      </div>
+                      {errors.affiliation && (
+                        <p className="text-sm text-red-600 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          {errors.affiliation.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Designation */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="designation"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Designation <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        {/* <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
+                        <Input
+                          id="designation"
+                          placeholder="Your company, institution, or organization"
+                          {...register("designation")}
+                          onChange={(e) => {
+                            register("designation").onChange(e);
+                            handleInputChange("designation");
+                          }}
+                          // className={cn(
+                          //   "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
+                          //   errors.affiliation
+                          //     ? "border-red-500"
+                          //     : "border-gray-300"
+                          // )}
+                        />
+                      </div>
+                      {errors.designation && (
+                        <p className="text-sm text-red-600 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          {errors.designation.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MCI Registration (Yes / No) */}
+                  <div className="space-y-2">
+                    <Label>
+                      MCI Registration <span className="text-red-600">*</span>
+                    </Label>
+
+                    <Controller
+                      name="mciRegistered"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || ""}
+                        >
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+
+                    {errors.mciRegistered && (
                       <p className="text-sm text-red-600 flex items-center gap-1">
                         <XCircle className="w-3 h-3" />
-                        {errors.email.message}
+                        {errors.mciRegistered.message}
                       </p>
                     )}
                   </div>
-
-                  {/* Mobile */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="mobile"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Mobile Number <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="mobile"
-                        type="tel"
-                        placeholder="10-digit mobile number"
-                        {...register("mobile")}
-                        onChange={(e) => {
-                          const formatted = formatMobile(e.target.value);
-                          e.target.value = formatted;
-                          register("mobile").onChange(e);
-                          handleInputChange("mobile");
-                        }}
-                        className={cn(
-                          "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                          errors.mobile ? "border-red-500" : "border-gray-300"
+                  {/* Conditional MCI Fields */}
+                  {watch("mciRegistered") === "yes" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* MCI Registration Number */}
+                      <div className="space-y-2">
+                        <Label>
+                          MCI Registration Number{" "}
+                          <span className="text-red-600">*</span>
+                        </Label>
+                        <Input {...register("mciNumber")} />
+                        {errors.mciNumber && (
+                          <p className="text-sm text-red-600 flex items-center gap-1">
+                            <XCircle className="w-3 h-3" />
+                            {errors.mciNumber.message}
+                          </p>
                         )}
-                      />
+                      </div>
+
+                      {/* MCI Registration State (shadcn dropdown) */}
+                      <div className="space-y-2">
+                        <Label>
+                          MCI Registration State{" "}
+                          <span className="text-red-600">*</span>
+                        </Label>
+
+                        <Controller
+                          name="mciState"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value || ""}
+                            >
+                              <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder="Select Medical Council" />
+                              </SelectTrigger>
+
+                              <SelectContent className="max-h-60">
+                                {medicalCouncils.map((council) => (
+                                  <SelectItem key={council} value={council}>
+                                    {council}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+
+                        {errors.mciState && (
+                          <p className="text-sm text-red-600 flex items-center gap-1">
+                            <XCircle className="w-3 h-3" />
+                            {errors.mciState.message}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {errors.mobile && (
+                  )}
+                  {/* Department */}
+                  <div className="space-y-2">
+                    <Label>
+                      Department <span className="text-red-600">*</span>
+                    </Label>
+
+                    <Controller
+                      name="department"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || ""}
+                        >
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue placeholder="Select Department" />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            <SelectItem value="Cardiology">
+                              Cardiology
+                            </SelectItem>
+                            <SelectItem value="Neurology">Neurology</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+
+                    {errors.department && (
                       <p className="text-sm text-red-600 flex items-center gap-1">
                         <XCircle className="w-3 h-3" />
-                        {errors.mobile.message}
+                        {errors.department.message}
                       </p>
                     )}
                   </div>
+                  {/* Gender */}
+                  <div className="space-y-2">
+                    <Label>
+                      Gender <span className="text-red-600">*</span>
+                    </Label>
 
+                    <Controller
+                      name="gender"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || ""}
+                        >
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue placeholder="Select Gender" />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+
+                    {errors.gender && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <XCircle className="w-3 h-3" />
+                        {errors.gender.message}
+                      </p>
+                    )}
+                  </div>
+                  {/* TextArea */}
+                  <div className="space-y-2">
+                    <Label>
+                      Address <span className="text-red-600">*</span>
+                    </Label>
+
+                    <Textarea
+                      {...register("address")}
+                      rows={3}
+                      placeholder="Enter full address"
+                    />
+
+                    {errors.address && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <XCircle className="w-3 h-3" />
+                        {errors.address.message}
+                      </p>
+                    )}
+                  </div>
                   {/* Country */}
                   <div className="space-y-2">
                     <div className="relative">
@@ -438,106 +705,111 @@ export default function Signup() {
                           errors={errors}
                           showCountry={true}
                           disableCountry={false}
-                          showState={false}
-                          showCity={false}
-                          showPincode={false}
+                          showState={true}
+                          disableState={false}
+                          showCity={true}
+                          disableCity={false}
+                          showPincode={true}
+                          disablePincode={false}
                         />
                       </div>
                     </div>
                   </div>
-
                   {/* Password */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="password"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Password <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create a strong password"
-                        {...register("password")}
-                        onChange={(e) => {
-                          register("password").onChange(e);
-                          handleInputChange("password");
-                        }}
-                        className={cn(
-                          "pl-10 pr-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                          errors.password ? "border-red-500" : "border-gray-300"
-                        )}
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                        onClick={() => setShowPassword(!showPassword)}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="password"
+                        className="text-sm font-medium text-gray-700"
                       >
-                        {showPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
+                        Password <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        {/* <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Create a strong password"
+                          {...register("password")}
+                          onChange={(e) => {
+                            register("password").onChange(e);
+                            handleInputChange("password");
+                          }}
+                          // className={cn(
+                          //   "pl-10 pr-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
+                          //   errors.password
+                          //     ? "border-red-500"
+                          //     : "border-gray-300"
+                          // )}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff size={18} />
+                          ) : (
+                            <Eye size={18} />
+                          )}
+                        </button>
+                      </div>
+                      {errors.password && (
+                        <p className="text-sm text-red-600 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          {errors.password.message}
+                        </p>
+                      )}
                     </div>
-                    {errors.password && (
-                      <p className="text-sm text-red-600 flex items-center gap-1">
-                        <XCircle className="w-3 h-3" />
-                        {errors.password.message}
-                      </p>
-                    )}
-                  </div>
 
-                  {/* Confirm Password */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="confirmPassword"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Confirm Password <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm your password"
-                        {...register("confirmPassword")}
-                        onChange={(e) => {
-                          register("confirmPassword").onChange(e);
-                          handleInputChange("confirmPassword");
-                        }}
-                        className={cn(
-                          "pl-10 pr-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                          errors.confirmPassword
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        )}
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
+                    {/* Confirm Password */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="confirmPassword"
+                        className="text-sm font-medium text-gray-700"
                       >
-                        {showConfirmPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
+                        Confirm Password <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        {/* <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirm your password"
+                          {...register("confirmPassword")}
+                          onChange={(e) => {
+                            register("confirmPassword").onChange(e);
+                            handleInputChange("confirmPassword");
+                          }}
+                          // className={cn(
+                          //   "pl-10 pr-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
+                          //   errors.confirmPassword
+                          //     ? "border-red-500"
+                          //     : "border-gray-300"
+                          // )}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff size={18} />
+                          ) : (
+                            <Eye size={18} />
+                          )}
+                        </button>
+                      </div>
+                      {errors.confirmPassword && (
+                        <p className="text-sm text-red-600 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          {errors.confirmPassword.message}
+                        </p>
+                      )}
                     </div>
-                    {errors.confirmPassword && (
-                      <p className="text-sm text-red-600 flex items-center gap-1">
-                        <XCircle className="w-3 h-3" />
-                        {errors.confirmPassword.message}
-                      </p>
-                    )}
                   </div>
-
                   {/* reCAPTCHA - Responsive */}
                   {/* <div className="mt-4 transform scale-90 sm:scale-95 md:scale-100 origin-left">
                     <ReCAPTCHA
@@ -548,7 +820,6 @@ export default function Signup() {
                       }
                     />
                   </div> */}
-
                   {/* Terms & Conditions */}
                   <div className="flex items-start space-x-3 mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <Checkbox
@@ -606,7 +877,6 @@ export default function Signup() {
                       {errors.termAndCondition.message}
                     </p>
                   )}
-
                   {/* Submit Button */}
                   <Button
                     type="submit"

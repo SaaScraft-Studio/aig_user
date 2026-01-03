@@ -60,16 +60,13 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       formData.append("gender", basicDetails.gender || "");
       formData.append("email", basicDetails.email);
       formData.append("mobile", basicDetails.phone);
+      formData.append("alternativeEmail", basicDetails.alternativeEmail || "");
+      formData.append(
+        "alternativeMobile",
+        basicDetails.alternativeMobile || ""
+      );
       formData.append("designation", basicDetails.designation || "");
       formData.append("affiliation", basicDetails.affiliation || "");
-      formData.append(
-        "medicalCouncilState",
-        basicDetails.medicalCouncilState || ""
-      );
-      formData.append(
-        "medicalCouncilRegistration",
-        basicDetails.medicalCouncilRegistration || ""
-      );
       formData.append("mealPreference", basicDetails.mealPreference || "");
       formData.append("country", basicDetails.country);
       formData.append("city", basicDetails.city || "");
@@ -355,8 +352,14 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
               { key: "fullName", label: "Full Name" },
               { key: "phone", label: "Phone" },
               { key: "email", label: "Email" },
+              { key: "alternativeEmail", label: "Alternative Email" },
+              { key: "alternativeMobile", label: "Alternative Mobile" },
               { key: "affiliation", label: "Affiliation" },
               { key: "designation", label: "Designation" },
+              { key: "mciRegistered", label: "MCI Registered" },
+              { key: "mciNumber", label: "MCI Registration Number" },
+              { key: "mciState", label: "MCI Council State" },
+
               { key: "address", label: "Address", span: 2 },
               { key: "country", label: "Country" },
               { key: "state", label: "State" },

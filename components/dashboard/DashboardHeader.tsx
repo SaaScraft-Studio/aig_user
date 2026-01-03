@@ -196,8 +196,6 @@ export function DashboardHeader({
           prefix: data.prefix || "",
           designation: data.designation || "",
           affiliation: data.affiliation || "",
-          medicalCouncilState: data.medicalCouncilState || "",
-          medicalCouncilRegistration: data.medicalCouncilRegistration || "",
           phone: data.mobile || data.phone || "",
           country: data.country || "",
           gender: data.gender || "",

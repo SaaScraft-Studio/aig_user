@@ -6,8 +6,6 @@ export type Profile = {
   prefix: string;
   designation: string;
   affiliation: string;
-  medicalCouncilState: string;
-  medicalCouncilRegistration: string;
   phone: string;
   email: string;
   country: string;
@@ -24,8 +22,6 @@ export const getDummyProfile = (): Profile => ({
   prefix: "Dr",
   designation: "",
   affiliation: "",
-  medicalCouncilState: "",
-  medicalCouncilRegistration: "",
   phone: "4512666232",
   email: "abc@gmail.com",
   country: "",
