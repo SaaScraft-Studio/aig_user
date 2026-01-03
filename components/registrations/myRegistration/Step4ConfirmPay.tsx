@@ -67,6 +67,9 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       );
       formData.append("designation", basicDetails.designation || "");
       formData.append("affiliation", basicDetails.affiliation || "");
+      formData.append("mciRegistered", basicDetails.mciRegistered || "no");
+      formData.append("mciNumber", basicDetails.mciNumber || "");
+      formData.append("mciState", basicDetails.mciState || "");
       formData.append("mealPreference", basicDetails.mealPreference || "");
       formData.append("country", basicDetails.country);
       formData.append("city", basicDetails.city || "");
@@ -357,8 +360,12 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
               { key: "affiliation", label: "Affiliation" },
               { key: "designation", label: "Designation" },
               { key: "mciRegistered", label: "MCI Registered" },
-              { key: "mciNumber", label: "MCI Registration Number" },
-              { key: "mciState", label: "MCI Council State" },
+              ...(basicDetails.mciRegistered === "yes"
+                ? [
+                    { key: "mciNumber", label: "MCI Registration Number" },
+                    { key: "mciState", label: "MCI Council State" },
+                  ]
+                : []),
 
               { key: "address", label: "Address", span: 2 },
               { key: "country", label: "Country" },
