@@ -13,8 +13,6 @@ interface UserState {
   prefix: string;
   designation: string;
   affiliation: string;
-  medicalCouncilState: string;
-  medicalCouncilRegistration: string;
   phone: string;
   country: string;
   gender: string;
@@ -44,8 +42,6 @@ export const useUserStore = create<UserState>()(
       prefix: "",
       designation: "",
       affiliation: "",
-      medicalCouncilState: "",
-      medicalCouncilRegistration: "",
       phone: "",
       country: "",
       gender: "",
@@ -80,8 +76,6 @@ export const useUserStore = create<UserState>()(
           prefix: "",
           designation: "",
           affiliation: "",
-          medicalCouncilState: "",
-          medicalCouncilRegistration: "",
           phone: "",
           country: "",
           gender: "",

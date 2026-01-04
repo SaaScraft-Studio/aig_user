@@ -65,15 +65,19 @@ export type BasicDetails = {
   fullName: string; // Frontend uses fullName, but backend expects "name"
   email: string;
   phone: string; // Frontend uses phone, but backend expects "mobile"
+  alternativeEmail: string;
+  alternativeMobile: string;
   affiliation?: string;
   designation?: string;
-  medicalCouncilRegistration: string;
-  medicalCouncilState?: string;
+  department?: string;
   address?: string;
   country: string;
   state?: string;
   city?: string;
   pincode?: string;
+  mciRegistered?: "yes" | "no";
+  mciNumber?: string;
+  mciState?: string;
 
   acceptedTerms?: boolean;
 
@@ -156,10 +160,14 @@ const initialBasicDetails: BasicDetails = {
   fullName: "",
   email: "",
   phone: "",
+  alternativeEmail: "",
+  alternativeMobile: "",
   affiliation: "",
   designation: "",
-  medicalCouncilRegistration: "",
-  medicalCouncilState: "",
+  department: "",
+  mciRegistered: "no",
+  mciNumber: "",
+  mciState: "",
   address: "",
   country: "India",
   state: "",

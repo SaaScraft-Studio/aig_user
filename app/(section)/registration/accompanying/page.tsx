@@ -153,6 +153,14 @@ function AccompanyingContent() {
             </div>
           </div>
         )}
+        {!eventId && (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-700">
+              No event selected. Please go back to the events page to select an
+              event.
+            </p>
+          </div>
+        )}
       </div>
 
       <AccompanyingTable

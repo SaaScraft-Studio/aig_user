@@ -387,7 +387,7 @@ export default function PaymentSuccessPage() {
         </div>
 
         {/* Important Notes */}
-        <Card className="mt-8 border-blue-200">
+        {/* <Card className="mt-8 border-blue-200">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
               Important Information
@@ -420,7 +420,7 @@ export default function PaymentSuccessPage() {
               </li>
             </ul>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );

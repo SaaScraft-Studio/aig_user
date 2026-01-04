@@ -135,6 +135,9 @@ function RegistrationContent() {
               }
             );
 
+            // const data = await profileRes.json();
+            // console.log("Fetched profile data:", data);
+
             if (profileRes.ok) {
               const user = await profileRes.json();
               updateBasicDetails({
@@ -142,13 +145,20 @@ function RegistrationContent() {
                 fullName: user.fullname || user.name || "",
                 phone: user.mobile || user.phone || "",
                 email: user.email || "",
+                gender: user.gender ?? "",
                 affiliation: user.affiliation ?? "",
                 designation: user.designation ?? "",
+                department: user.department ?? "",
                 country: user.country ?? "",
                 city: user.city ?? "",
                 state: user.state ?? "",
                 pincode: user.pincode ?? "",
-                gender: user.gender ?? "",
+                address: user.address ?? "",
+                mciRegistered: user.mciRegistered ?? "no",
+                mciNumber: user.mciNumber ?? "",
+                mciState: user.mciState ?? "",
+                alternativeEmail: user.alternativeEmail ?? "",
+                alternativeMobile: user.alternativeMobile ?? "",
               });
             }
 

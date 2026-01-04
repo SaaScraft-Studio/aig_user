@@ -33,6 +33,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { medicalCouncils } from "@/app/data/medicalCouncils";
+import { departments } from "@/app/data/departments";
 
 // Update createDynamicSchema function:
 const createDynamicSchema = (
@@ -47,14 +49,34 @@ const createDynamicSchema = (
     mobile: z
       .string()
       .regex(/^\d{10}$/, { message: "Mobile must be 10 digits" }),
+    alternativeEmail: z
+      .string()
+      .transform((v) => v.trim())
+      .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+        message: "Invalid email",
+      })
+      .optional(),
+
+    alternativeMobile: z
+      .string()
+      .transform((v) => v.trim())
+      .refine((v) => v === "" || /^\d{10}$/.test(v), {
+        message: "Mobile must be 10 digits",
+      })
+      .optional(),
+
     designation: z.string().min(1, "Designation is required"),
     affiliation: z.string().min(1, "Affiliation is required"),
     mealPreference: z.string().min(1, "Please select a meal preference"),
     country: z.string().min(1, "Country is required"),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
+    department: z.string().min(1, "Department is required"),
     address: z.string().min(1, "Address is required"),
     pincode: z.string().min(1, "Pincode is required"),
+    mciRegistered: z.enum(["yes", "no"]),
+    mciNumber: z.string().optional(),
+    mciState: z.string().optional(),
     acceptedTerms: z.boolean().refine((v) => v === true, {
       message: "You must accept the terms and conditions",
     }),
@@ -72,7 +94,7 @@ const createDynamicSchema = (
       }),
   };
 
-  // Add category additional fields
+  // category additional fields
   if (category?.needAdditionalInfo && category.additionalFields?.length) {
     category.additionalFields.forEach((field) => {
       const fieldKey = `additional_${field.id}`;
@@ -87,17 +109,15 @@ const createDynamicSchema = (
     });
   }
 
-  // Add dynamic form fields to schema
+  // dynamic form fields
   dynamicFormFields.forEach((field) => {
     const fieldKey = `dynamic_${field.id}`;
 
-    // Check for file fields (both type: "file" and type: "input" with inputTypes: "file")
     const isFileField =
       field.type === "file" ||
       (field.type === "input" && field.inputTypes === "file");
 
     if (isFileField) {
-      // Skip Zod validation for file fields
       schemaFields[fieldKey] = z.any().optional();
     } else if (field.type === "checkbox") {
       schemaFields[fieldKey] = field.required
@@ -110,7 +130,26 @@ const createDynamicSchema = (
     }
   });
 
-  return z.object(schemaFields);
+  // ✅ SUPER REFINE GOES HERE
+  return z.object(schemaFields).superRefine((data, ctx) => {
+    if (data.mciRegistered === "yes") {
+      if (!data.mciNumber?.trim()) {
+        ctx.addIssue({
+          path: ["mciNumber"],
+          message: "MCI number is required",
+          code: z.ZodIssueCode.custom,
+        });
+      }
+
+      if (!data.mciState?.trim()) {
+        ctx.addIssue({
+          path: ["mciState"],
+          message: "MCI state is required",
+          code: z.ZodIssueCode.custom,
+        });
+      }
+    }
+  });
 };
 
 type DynamicSchema = ReturnType<typeof createDynamicSchema>;
@@ -157,16 +196,22 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       gender: basicDetails.gender || "",
       email: basicDetails.email || "",
       mobile: basicDetails.phone || "",
+      alternativeEmail: basicDetails.alternativeEmail || "",
+      alternativeMobile: basicDetails.alternativeMobile || "",
       designation: basicDetails.designation || "",
       affiliation: basicDetails.affiliation || "",
       mealPreference: basicDetails.mealPreference || "",
       country: basicDetails.country || "",
       city: basicDetails.city || "",
       state: basicDetails.state || "",
+      department: basicDetails.department || "",
       address: basicDetails.address || "",
       pincode: basicDetails.pincode || "",
       acceptedTerms: basicDetails.acceptedTerms || false,
       registrationCategory: basicDetails.registrationCategory || null,
+      mciRegistered: basicDetails.mciRegistered || "no",
+      mciNumber: basicDetails.mciNumber || "",
+      mciState: basicDetails.mciState || "",
     };
   }, []); // Empty dependency array - only compute once
 
@@ -194,16 +239,22 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       gender: basicDetails.gender || "",
       email: basicDetails.email || "",
       mobile: basicDetails.phone || "",
+      alternativeEmail: basicDetails.alternativeEmail || "",
+      alternativeMobile: basicDetails.alternativeMobile || "",
       designation: basicDetails.designation || "",
       affiliation: basicDetails.affiliation || "",
       mealPreference: basicDetails.mealPreference || "",
       country: basicDetails.country || "",
       city: basicDetails.city || "",
       state: basicDetails.state || "",
+      department: basicDetails.department || "",
       address: basicDetails.address || "",
       pincode: basicDetails.pincode || "",
       acceptedTerms: basicDetails.acceptedTerms || false,
       registrationCategory: basicDetails.registrationCategory || null,
+      mciRegistered: basicDetails.mciRegistered || "no",
+      mciNumber: basicDetails.mciNumber || "",
+      mciState: basicDetails.mciState || "",
     };
 
     // Add additional answers
@@ -414,6 +465,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       prefix: data.prefix,
       gender: data.gender,
       email: data.email,
+      mciRegistered: data.mciRegistered,
+      mciNumber: data.mciNumber,
+      mciState: data.mciState,
+      alternativeEmail: data.alternativeEmail || "",
+      alternativeMobile: data.alternativeMobile || "",
       designation: data.designation,
       affiliation: data.affiliation,
       mealPreference: data.mealPreference,
@@ -807,6 +863,68 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
 
         <div className="space-y-2">
           <Label>
+            Email Id <span className="text-red-600">*</span>
+          </Label>
+          <Input {...register("email")} disabled />
+          {errors.email && (
+            <p className="text-sm text-red-600">
+              {typeof errors.email.message === "string"
+                ? errors.email.message
+                : "This field is required"}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Alternative Email ID</Label>
+          <Input {...register("alternativeEmail")} />
+          {errors.alternativeEmail && (
+            <p className="text-sm text-red-600">
+              {errors.alternativeEmail.message as string}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>
+            Mobile No. <span className="text-red-600">*</span>
+          </Label>
+          <Input
+            {...register("mobile")}
+            onInput={(e) => {
+              let val = e.currentTarget.value.replace(/\D/g, "");
+              if (val.length > 10) val = val.slice(0, 10);
+              e.currentTarget.value = val;
+            }}
+          />
+          {errors.mobile && (
+            <p className="text-sm text-red-600">
+              {typeof errors.mobile.message === "string"
+                ? errors.mobile.message
+                : "This field is required"}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Alternative Mobile Number</Label>
+          <Input
+            {...register("alternativeMobile")}
+            onInput={(e) => {
+              let val = e.currentTarget.value.replace(/\D/g, "");
+              if (val.length > 10) val = val.slice(0, 10);
+              e.currentTarget.value = val;
+            }}
+          />
+          {errors.alternativeMobile && (
+            <p className="text-sm text-red-600">
+              {errors.alternativeMobile.message as string}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>
             Gender <span className="text-red-600">*</span>
           </Label>
           <Controller
@@ -829,41 +947,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             <p className="text-sm text-red-600">
               {typeof errors.gender.message === "string"
                 ? errors.gender.message
-                : "This field is required"}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label>
-            Email Id <span className="text-red-600">*</span>
-          </Label>
-          <Input {...register("email")} />
-          {errors.email && (
-            <p className="text-sm text-red-600">
-              {typeof errors.email.message === "string"
-                ? errors.email.message
-                : "This field is required"}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label>
-            Mobile No. <span className="text-red-600">*</span>
-          </Label>
-          <Input
-            {...register("mobile")}
-            onInput={(e) => {
-              let val = e.currentTarget.value.replace(/\D/g, "");
-              if (val.length > 10) val = val.slice(0, 10);
-              e.currentTarget.value = val;
-            }}
-          />
-          {errors.mobile && (
-            <p className="text-sm text-red-600">
-              {typeof errors.mobile.message === "string"
-                ? errors.mobile.message
                 : "This field is required"}
             </p>
           )}
@@ -928,6 +1011,40 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
           )}
         </div>
 
+        <div className="space-y-2">
+          <Label>
+            Department <span className="text-red-600">*</span>
+          </Label>
+
+          <Controller
+            name="department"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+
+                <SelectContent className="max-h-60">
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+
+          {errors.department && (
+            <p className="text-sm text-red-600">
+              {typeof errors.department.message === "string"
+                ? errors.department.message
+                : "This field is required"}
+            </p>
+          )}
+        </div>
+
         <div className="md:col-span-2 space-y-2">
           <Label>
             Address <span className="text-red-600">*</span>
@@ -941,6 +1058,84 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             </p>
           )}
         </div>
+
+        <div className="space-y-2">
+          <Label>
+            MCI Registered <span className="text-red-600">*</span>
+          </Label>
+
+          <Controller
+            name="mciRegistered"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+
+          {errors.mciRegistered && (
+            <p className="text-sm text-red-600">
+              {typeof errors.mciRegistered.message === "string"
+                ? errors.mciRegistered.message
+                : "This field is required"}
+            </p>
+          )}
+        </div>
+        {watch("mciRegistered") === "yes" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* MCI Number */}
+            <div className="space-y-2">
+              <Label>
+                MCI Number <span className="text-red-600">*</span>
+              </Label>
+              <Input {...register("mciNumber")} />
+              {errors.mciNumber && (
+                <p className="text-sm text-red-600">
+                  {errors.mciNumber.message as string}
+                </p>
+              )}
+            </div>
+
+            {/* MCI State */}
+            <div className="space-y-2">
+              <Label>
+                MCI State <span className="text-red-600">*</span>
+              </Label>
+
+              <Controller
+                name="mciState"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Medical Council" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {medicalCouncils.map((council) => (
+                        <SelectItem key={council} value={council}>
+                          {council}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+
+              {errors.mciState && (
+                <p className="text-sm text-red-600">
+                  {errors.mciState.message as string}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="md:col-span-2">
           {" "}

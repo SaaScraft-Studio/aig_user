@@ -20,8 +20,11 @@ interface Props {
   showCountry?: boolean;
   disableCountry?: boolean;
   showState?: boolean;
+  disableState?: boolean;
   showCity?: boolean;
+  disableCity?: boolean;
   showPincode?: boolean;
+  disablePincode?: boolean;
   editing?: boolean;
   className?: string;
 }
@@ -33,8 +36,11 @@ export default function CountryStateCitySelect({
   showCountry = true,
   disableCountry = false,
   showState = true,
+  disableState = false,
   showCity = true,
+  disableCity = false,
   showPincode = true,
+  disablePincode = false,
   editing = false,
   className = "",
 }: Props) {
@@ -93,7 +99,7 @@ export default function CountryStateCitySelect({
               <Select
                 onValueChange={(value) => field.onChange(value)}
                 value={field.value || ""}
-                disabled={!editing}
+                disabled={disableState}
               >
                 <SelectTrigger className="w-full cursor-pointer">
                   <SelectValue placeholder="Select state" />
@@ -131,7 +137,7 @@ export default function CountryStateCitySelect({
               <Select
                 onValueChange={(value) => field.onChange(value)}
                 value={field.value}
-                disabled={!editing}
+                disabled={disableCity}
               >
                 <SelectTrigger className="w-full cursor-pointer">
                   <SelectValue placeholder="Select city" />
@@ -175,7 +181,7 @@ export default function CountryStateCitySelect({
                 type="text"
                 placeholder="Enter Postal Code"
                 {...field}
-                disabled={!editing}
+                disabled={disablePincode}
               />
             )}
           />

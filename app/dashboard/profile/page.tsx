@@ -52,12 +52,6 @@ export default function ProfilePage() {
           prefix: data.prefix || "",
           designation: data.designation || "",
           affiliation: data.affiliation || "",
-          medicalCouncilState:
-            typeof data.medicalCouncilState === "string" &&
-            data.medicalCouncilState.trim() !== ""
-              ? data.medicalCouncilState
-              : "",
-          medicalCouncilRegistration: data.medicalCouncilRegistration || "",
           phone: data.mobile || data.phone || "",
           email: data.email || "",
           country: data.country || "",

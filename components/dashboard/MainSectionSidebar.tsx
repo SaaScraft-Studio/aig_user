@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, ChevronLeft } from "lucide-react";
+import { FileText, ChevronLeft, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation"; // Add useSearchParams
 
@@ -11,6 +11,12 @@ const sections = [
     icon: FileText,
     key: "registrations",
   },
+  // {
+  //   label: "Abstracts",
+  //   href: "/abstract/my-abstracts",
+  //   icon: BookOpen,
+  //   key: "abstracts",
+  // },
 ];
 
 export const MainSectionSidebar = ({
@@ -72,7 +78,7 @@ export const MainSectionSidebar = ({
               onClick={() => {
                 // Use the buildUrl function to preserve parameters
                 const urlWithParams = buildUrl(href);
-                // onSectionClick(key, urlWithParams);
+                onSectionClick(key, urlWithParams);
               }}
               className={cn(
                 "flex flex-col items-center text-xs font-semibold transition-all duration-200 group relative cursor-pointer p-2 rounded-lg",
