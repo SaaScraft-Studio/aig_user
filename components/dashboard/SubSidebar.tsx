@@ -200,7 +200,9 @@ export function SubSidebar({
               Manage your registration
             </p> */}
             {loadingSettings && (
-              <p className="text-xs text-blue-600 mt-1">Loading settings...</p>
+              <p className="text-xs text-blue-600 mt-1 text-center">
+                Loading settings...
+              </p>
             )}
             {settingsFetched && filteredItems.length === 0 && (
               <p className="text-xs text-gray-500 mt-1">No options available</p>

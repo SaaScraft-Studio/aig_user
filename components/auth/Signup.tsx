@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { departments } from "@/app/data/departments";
 
 countries.registerLocale(enLocale);
 
@@ -625,11 +626,12 @@ export default function Signup() {
                             <SelectValue placeholder="Select Department" />
                           </SelectTrigger>
 
-                          <SelectContent>
-                            <SelectItem value="Cardiology">
-                              Cardiology
-                            </SelectItem>
-                            <SelectItem value="Neurology">Neurology</SelectItem>
+                          <SelectContent className="max-h-60">
+                            {departments.map((dept) => (
+                              <SelectItem key={dept} value={dept}>
+                                {dept}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       )}

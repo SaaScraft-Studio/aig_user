@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { medicalCouncils } from "@/app/data/medicalCouncils";
+import { departments } from "@/app/data/departments";
 
 // Update createDynamicSchema function:
 const createDynamicSchema = (
@@ -70,6 +71,7 @@ const createDynamicSchema = (
     country: z.string().min(1, "Country is required"),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
+    department: z.string().min(1, "Department is required"),
     address: z.string().min(1, "Address is required"),
     pincode: z.string().min(1, "Pincode is required"),
     mciRegistered: z.enum(["yes", "no"]),
@@ -202,6 +204,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       country: basicDetails.country || "",
       city: basicDetails.city || "",
       state: basicDetails.state || "",
+      department: basicDetails.department || "",
       address: basicDetails.address || "",
       pincode: basicDetails.pincode || "",
       acceptedTerms: basicDetails.acceptedTerms || false,
@@ -244,6 +247,7 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       country: basicDetails.country || "",
       city: basicDetails.city || "",
       state: basicDetails.state || "",
+      department: basicDetails.department || "",
       address: basicDetails.address || "",
       pincode: basicDetails.pincode || "",
       acceptedTerms: basicDetails.acceptedTerms || false,
@@ -461,6 +465,11 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
       prefix: data.prefix,
       gender: data.gender,
       email: data.email,
+      mciRegistered: data.mciRegistered,
+      mciNumber: data.mciNumber,
+      mciState: data.mciState,
+      alternativeEmail: data.alternativeEmail || "",
+      alternativeMobile: data.alternativeMobile || "",
       designation: data.designation,
       affiliation: data.affiliation,
       mealPreference: data.mealPreference,
@@ -997,6 +1006,40 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
             <p className="text-sm text-red-600">
               {typeof errors.mealPreference.message === "string"
                 ? errors.mealPreference.message
+                : "This field is required"}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>
+            Department <span className="text-red-600">*</span>
+          </Label>
+
+          <Controller
+            name="department"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+
+                <SelectContent className="max-h-60">
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+
+          {errors.department && (
+            <p className="text-sm text-red-600">
+              {typeof errors.department.message === "string"
+                ? errors.department.message
                 : "This field is required"}
             </p>
           )}

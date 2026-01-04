@@ -164,6 +164,7 @@ const initialBasicDetails: BasicDetails = {
   alternativeMobile: "",
   affiliation: "",
   designation: "",
+  department: "",
   mciRegistered: "no",
   mciNumber: "",
   mciState: "",

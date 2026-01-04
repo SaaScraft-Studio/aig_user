@@ -60,20 +60,18 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
       formData.append("gender", basicDetails.gender || "");
       formData.append("email", basicDetails.email);
       formData.append("mobile", basicDetails.phone);
-      formData.append("alternativeEmail", basicDetails.alternativeEmail || "");
-      formData.append(
-        "alternativeMobile",
-        basicDetails.alternativeMobile || ""
-      );
+      formData.append("alternateEmail", basicDetails.alternativeEmail || "");
+      formData.append("alternateMobile", basicDetails.alternativeMobile || "");
       formData.append("designation", basicDetails.designation || "");
       formData.append("affiliation", basicDetails.affiliation || "");
       formData.append("mciRegistered", basicDetails.mciRegistered || "no");
-      formData.append("mciNumber", basicDetails.mciNumber || "");
-      formData.append("mciState", basicDetails.mciState || "");
+      formData.append("mciNumber", basicDetails.mciNumber?.trim() || "");
+      formData.append("mciState", basicDetails.mciState?.trim() || "");
       formData.append("mealPreference", basicDetails.mealPreference || "");
       formData.append("country", basicDetails.country);
       formData.append("city", basicDetails.city || "");
       formData.append("state", basicDetails.state || "");
+      formData.append("department", basicDetails.department || "");
       formData.append("address", basicDetails.address || "");
       formData.append("pincode", basicDetails.pincode || "");
 
@@ -355,18 +353,32 @@ export default function Step4ConfirmPay({ onBack }: { onBack: () => void }) {
               { key: "fullName", label: "Full Name" },
               { key: "phone", label: "Phone" },
               { key: "email", label: "Email" },
-              { key: "alternativeEmail", label: "Alternative Email" },
-              { key: "alternativeMobile", label: "Alternative Mobile" },
+              // Conditionally show alternate email (only if not empty)
+              ...(basicDetails.alternativeEmail?.trim()
+                ? [{ key: "alternativeEmail", label: "Alternative Email" }]
+                : []),
+              // Conditionally show alternate mobile (only if not empty)
+              ...(basicDetails.alternativeMobile?.trim()
+                ? [{ key: "alternativeMobile", label: "Alternative Mobile" }]
+                : []),
               { key: "affiliation", label: "Affiliation" },
               { key: "designation", label: "Designation" },
+              { key: "department", label: "Department" },
               { key: "mciRegistered", label: "MCI Registered" },
-              ...(basicDetails.mciRegistered === "yes"
+              // Show MCI details ONLY if:
+              // 1. User selected "yes" for MCI Registered
+              // 2. AND provided at least one of mciNumber or mciState
+              ...(basicDetails.mciRegistered === "yes" &&
+              (basicDetails.mciNumber?.trim() || basicDetails.mciState?.trim())
                 ? [
-                    { key: "mciNumber", label: "MCI Registration Number" },
-                    { key: "mciState", label: "MCI Council State" },
+                    ...(basicDetails.mciNumber?.trim()
+                      ? [{ key: "mciNumber", label: "MCI Registration Number" }]
+                      : []),
+                    ...(basicDetails.mciState?.trim()
+                      ? [{ key: "mciState", label: "MCI Council State" }]
+                      : []),
                   ]
                 : []),
-
               { key: "address", label: "Address", span: 2 },
               { key: "country", label: "Country" },
               { key: "state", label: "State" },

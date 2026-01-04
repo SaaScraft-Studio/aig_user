@@ -157,6 +157,8 @@ function RegistrationContent() {
                 mciRegistered: user.mciRegistered ?? "no",
                 mciNumber: user.mciNumber ?? "",
                 mciState: user.mciState ?? "",
+                alternativeEmail: user.alternativeEmail ?? "",
+                alternativeMobile: user.alternativeMobile ?? "",
               });
             }
 
