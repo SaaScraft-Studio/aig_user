@@ -5,9 +5,12 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-   reactStrictMode: false,
+  reactStrictMode: false,
   typescript: {
     ignoreBuildErrors: true,
+  },
+  images: {
+    domains: ["aig-academics.s3.ap-southeast-1.amazonaws.com"],
   },
 };
 

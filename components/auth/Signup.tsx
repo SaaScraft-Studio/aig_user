@@ -11,6 +11,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
+import Image from "next/image";
 import {
   Eye,
   EyeOff,
@@ -31,7 +32,6 @@ import Link from "next/link";
 import CountryStateCitySelect from "../common/CountryStateCitySelect";
 import ReCAPTCHA from "react-google-recaptcha";
 import { cn } from "@/lib/utils";
-import { CldImage } from "next-cloudinary";
 import { medicalCouncils } from "@/app/data/medicalCouncils";
 import {
   Select,
@@ -912,13 +912,13 @@ export default function Signup() {
 
           {/* Right Image Section - Hidden on mobile, shown on lg screens */}
           <div className="hidden lg:block relative w-full h-full">
-            <CldImage
-              src="signup_bxxhz1" // ← Use the Public ID from Step 4
+            <Image
+              src="https://aig-academics.s3.ap-southeast-1.amazonaws.com/aig-user-signup.jpeg"
               alt="Professional community networking"
               fill
               sizes="50vw"
               className="object-cover"
-              priority={true}
+              priority
             />
 
             {/* Your overlay content stays exactly the same */}
