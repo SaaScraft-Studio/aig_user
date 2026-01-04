@@ -36,6 +36,7 @@ import { useForm, Controller } from "react-hook-form";
 import CountryStateCitySelect from "../common/CountryStateCitySelect";
 import { medicalCouncils } from "@/app/data/medicalCouncils";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { departments } from "@/app/data/departments";
 
 // Profile type
 export type Profile = {
@@ -44,62 +45,92 @@ export type Profile = {
   prefix: string;
   designation: string;
   affiliation: string;
+  department?: string;
   phone: string;
   email: string;
   country: string;
   gender: string;
   city: string;
   state: string;
+  address?: string;
   mealPreference: string;
   pincode: string;
+  mciRegistered?: "yes" | "no";
+  mciNumber?: string;
+  mciState?: string;
 };
 
 // Schema to match Profile type
-const profileSchema = z.object({
-  photo: z.string().optional(),
-  fullName: z
-    .string()
-    .min(3, "Full name is required")
-    .regex(/^[A-Za-z\s]+$/, "Only alphabets and spaces are allowed")
-    .max(50, "Maximum 50 characters"),
-  prefix: z.string().min(1, "Prefix is required").max(10),
-  designation: z
-    .string()
-    .regex(/^[A-Za-z\s]+$/, "Only alphabets allowed")
-    .min(2, "Minimum 2 characters")
-    .max(50, "Maximum 50 characters")
-    .optional()
-    .or(z.literal("")),
-  affiliation: z.string().min(1, "Affiliation is required").max(50),
-  phone: z
-    .string()
-    .regex(/^\d{10}$/, { message: "Mobile number must be 10 digits" }),
-  email: z.string().email("Invalid email address"),
-  country: z.string().min(1, "Country is required"),
-  gender: z.string().optional().or(z.literal("")),
-  city: z
-    .string()
-    .regex(/^[A-Za-z\s]+$/, "Only alphabets allowed")
-    .min(2, "Minimum 2 characters")
-    .max(50, "Maximum 50 characters")
-    .optional()
-    .or(z.literal("")),
-  state: z
-    .string()
-    .regex(/^[A-Za-z\s]+$/, "Only alphabets allowed")
-    .min(2, "Minimum 2 characters")
-    .max(50, "Maximum 50 characters")
-    .optional()
-    .or(z.literal("")),
-  mealPreference: z.string().optional().or(z.literal("")),
-  pincode: z
-    .string()
-    .regex(/^\d+$/, "Pincode must be numeric")
-    .min(4, "Minimum 4 digits")
-    .max(10, "Maximum 10 digits")
-    .optional()
-    .or(z.literal("")),
-});
+const profileSchema = z
+  .object({
+    photo: z.string().optional(),
+    fullName: z
+      .string()
+      .min(3, "Full name is required")
+      .regex(/^[A-Za-z\s]+$/, "Only alphabets and spaces are allowed")
+      .max(50, "Maximum 50 characters"),
+    prefix: z.string().min(1, "Prefix is required").max(10),
+    designation: z
+      .string()
+      .regex(/^[A-Za-z\s]+$/, "Only alphabets allowed")
+      .min(2, "Minimum 2 characters")
+      .max(50, "Maximum 50 characters")
+      .optional()
+      .or(z.literal("")),
+    affiliation: z.string().min(1, "Affiliation is required").max(50),
+    phone: z
+      .string()
+      .regex(/^\d{10}$/, { message: "Mobile number must be 10 digits" }),
+    department: z.string().min(1, "Department is required"),
+    address: z.string().min(5, "Address is required"),
+    email: z.string().email("Invalid email address"),
+    country: z.string().min(1, "Country is required"),
+    gender: z.string().optional().or(z.literal("")),
+    city: z
+      .string()
+      .regex(/^[A-Za-z\s]+$/, "Only alphabets allowed")
+      .min(2, "Minimum 2 characters")
+      .max(50, "Maximum 50 characters")
+      .optional()
+      .or(z.literal("")),
+    state: z
+      .string()
+      .regex(/^[A-Za-z\s]+$/, "Only alphabets allowed")
+      .min(2, "Minimum 2 characters")
+      .max(50, "Maximum 50 characters")
+      .optional()
+      .or(z.literal("")),
+    mealPreference: z.string().optional().or(z.literal("")),
+    pincode: z
+      .string()
+      .regex(/^\d+$/, "Pincode must be numeric")
+      .min(4, "Minimum 4 digits")
+      .max(10, "Maximum 10 digits")
+      .optional()
+      .or(z.literal("")),
+    mciRegistered: z.enum(["yes", "no"]),
+    mciNumber: z.string().optional(),
+    mciState: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.mciRegistered === "yes") {
+      if (!data.mciNumber?.trim()) {
+        ctx.addIssue({
+          path: ["mciNumber"],
+          message: "MCI number is required",
+          code: z.ZodIssueCode.custom,
+        });
+      }
+
+      if (!data.mciState?.trim()) {
+        ctx.addIssue({
+          path: ["mciState"],
+          message: "MCI state is required",
+          code: z.ZodIssueCode.custom,
+        });
+      }
+    }
+  });
 
 type FormData = z.infer<typeof profileSchema>;
 
@@ -227,6 +258,11 @@ export default function MyProfileForm({
       formData.append("state", data.state || "");
       formData.append("mealPreference", data.mealPreference || "");
       formData.append("pincode", data.pincode || "");
+      formData.append("department", data.department || "");
+      formData.append("address", data.address || "");
+      formData.append("mciRegistered", data.mciRegistered || "no");
+      formData.append("mciNumber", data.mciNumber || "");
+      formData.append("mciState", data.mciState || "");
 
       // Append profile picture if changed
       if (photoFile) {
@@ -457,6 +493,42 @@ export default function MyProfileForm({
                 editing={isEditing}
                 error={errors.affiliation}
               />
+              <SelectField
+                control={control}
+                name="department"
+                label="Department"
+                options={departments}
+                editing={isEditing}
+                error={errors.department}
+              />
+              <SelectField
+                control={control}
+                name="mciRegistered"
+                label="MCI Registered"
+                options={["yes", "no"]}
+                editing={isEditing}
+              />
+              {watch("mciRegistered") === "yes" && (
+                <>
+                  <InputField
+                    control={control}
+                    name="mciNumber"
+                    label="MCI Number"
+                    required
+                    editing={isEditing}
+                    error={errors.mciNumber}
+                  />
+
+                  <SelectField
+                    control={control}
+                    name="mciState"
+                    label="Council State"
+                    options={medicalCouncils}
+                    editing={isEditing}
+                    error={errors.mciState}
+                  />
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -501,6 +573,14 @@ export default function MyProfileForm({
                   showCity={true}
                   showPincode={true}
                   editing={isEditing}
+                />
+                <InputField
+                  control={control}
+                  name="address"
+                  label="Address"
+                  required
+                  editing={isEditing}
+                  error={errors.address}
                 />
               </div>
             </div>

@@ -41,11 +41,12 @@ export default function CountryStateCitySelect({
   disableCity = false,
   showPincode = true,
   disablePincode = false,
-  editing = false,
+  editing,
   className = "",
 }: Props) {
   const country = watch("country");
   const state = watch("state");
+  const isEditable = editing !== false;
 
   return (
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${className}`}>
@@ -99,9 +100,15 @@ export default function CountryStateCitySelect({
               <Select
                 onValueChange={(value) => field.onChange(value)}
                 value={field.value || ""}
-                disabled={disableState}
+                disabled={!isEditable || disableState}
               >
-                <SelectTrigger className="w-full cursor-pointer">
+                <SelectTrigger
+                  className={`w-full ${
+                    isEditable
+                      ? "border-gray-300 focus:border-[#00509E] bg-white"
+                      : "bg-white cursor-not-allowed opacity-80"
+                  }`}
+                >
                   <SelectValue placeholder="Select state" />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,9 +144,15 @@ export default function CountryStateCitySelect({
               <Select
                 onValueChange={(value) => field.onChange(value)}
                 value={field.value}
-                disabled={disableCity}
+                disabled={!isEditable || disableCity}
               >
-                <SelectTrigger className="w-full cursor-pointer">
+                <SelectTrigger
+                  className={`w-full ${
+                    isEditable
+                      ? "border-gray-300 focus:border-[#00509E] bg-white"
+                      : "bg-white cursor-not-allowed opacity-80"
+                  }`}
+                >
                   <SelectValue placeholder="Select city" />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,7 +194,12 @@ export default function CountryStateCitySelect({
                 type="text"
                 placeholder="Enter Postal Code"
                 {...field}
-                disabled={disablePincode}
+                disabled={!isEditable || disablePincode}
+                className={
+                  isEditable
+                    ? "border-gray-300 focus:border-[#00509E] bg-white"
+                    : "bg-white cursor-not-allowed opacity-80"
+                }
               />
             )}
           />

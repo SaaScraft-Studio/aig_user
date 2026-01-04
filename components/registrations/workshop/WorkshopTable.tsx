@@ -132,7 +132,6 @@ export default function WorkshopTable({
       );
 
       const data = await response.json();
-      console.log("Fetched registered workshops data:", data);
 
       if (data && data.success && Array.isArray(data.data)) {
         const regs: RegisteredWorkshop[] = data.data;
@@ -158,12 +157,7 @@ export default function WorkshopTable({
           }
         });
 
-        console.log("All flattened workshop items:", allFlatWorkshopItems);
         setFlatWorkshopItems(allFlatWorkshopItems);
-
-        // Log counts for debugging
-        console.log(`Total registrations: ${regs.length}`);
-        console.log(`Total workshop items: ${allFlatWorkshopItems.length}`);
       } else {
         setRegisteredWorkshops([]);
         setFlatWorkshopItems([]);

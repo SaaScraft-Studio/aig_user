@@ -96,8 +96,6 @@ export default function DynamicFormSection({
     setUploadingFiles((prev) => ({ ...prev, [id]: true }));
 
     try {
-      // Store file separately, NOT in form value
-      console.log("Uploading file for field:", id, file.name);
       onFileUpload(id, file);
     } catch (error) {
       toast.error("Failed to upload file");

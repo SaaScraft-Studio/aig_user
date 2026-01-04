@@ -420,19 +420,19 @@ export default function AccompanyingFormSidebar({
     name: "people",
   });
 
-  useEffect(() => {
-    if (editingPerson && open) {
-      console.log(
-        "Editing person meal preference:",
-        editingPerson.mealPreference
-      );
-      console.log("Available meal preferences:", mealPreferences);
-      console.log(
-        "Form meal preference value:",
-        watch("people.0.mealPreference")
-      );
-    }
-  }, [editingPerson, open, mealPreferences, watch]);
+  // useEffect(() => {
+  //   if (editingPerson && open) {
+  //     console.log(
+  //       "Editing person meal preference:",
+  //       editingPerson.mealPreference
+  //     );
+  //     console.log("Available meal preferences:", mealPreferences);
+  //     console.log(
+  //       "Form meal preference value:",
+  //       watch("people.0.mealPreference")
+  //     );
+  //   }
+  // }, [editingPerson, open, mealPreferences, watch]);
 
   useEffect(() => {
     if (editingPerson && open && mealPreferences.length > 0) {
