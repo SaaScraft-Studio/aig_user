@@ -11,12 +11,12 @@ const sections = [
     icon: FileText,
     key: "registrations",
   },
-  // {
-  //   label: "Abstracts",
-  //   href: "/abstract/my-abstracts",
-  //   icon: BookOpen,
-  //   key: "abstracts",
-  // },
+  {
+    label: "Abstracts",
+    href: "/abstract/my-abstracts",
+    icon: BookOpen,
+    key: "abstracts",
+  },
 ];
 
 export const MainSectionSidebar = ({
@@ -84,7 +84,7 @@ export const MainSectionSidebar = ({
                 "flex flex-col items-center text-xs font-semibold transition-all duration-200 group relative cursor-pointer p-2 rounded-lg",
                 isActive
                   ? "bg-white text-blue-700 shadow-lg border border-blue-200"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-white/80 hover:shadow-md"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-white/80 hover:shadow-md",
               )}
             >
               {/* Active indicator bar */}
@@ -95,7 +95,7 @@ export const MainSectionSidebar = ({
                   "p-2 rounded-lg transition-colors mb-1",
                   isActive
                     ? "bg-blue-100 text-blue-600"
-                    : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"
+                    : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600",
                 )}
               >
                 <Icon className="w-4 h-4" />
