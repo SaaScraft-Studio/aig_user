@@ -11,12 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  ChevronLeft,
-  ChevronRight,
-  PlusCircle,
-  Funnel,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, PlusCircle, Funnel } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAbstractStore } from "@/app/store/useAbstractStore";
 
@@ -41,7 +36,7 @@ export const AbstractTable = ({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const filteredAbstracts = abstracts.filter((a) =>
-    a.title.toLowerCase().includes(search.toLowerCase())
+    a.title.toLowerCase().includes(search.toLowerCase()),
   );
 
   const sortedAbstracts = [...filteredAbstracts].sort((a, b) => {
@@ -64,7 +59,7 @@ export const AbstractTable = ({
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentItems = sortedAbstracts.slice(
     startIndex,
-    startIndex + itemsPerPage
+    startIndex + itemsPerPage,
   );
 
   useEffect(() => {
@@ -163,7 +158,7 @@ export const AbstractTable = ({
                         View
                       </Button>
 
-                      {["DRAFT", "SUBMITTED"].includes(a.status) && (
+                      {["DRAFT"].includes(a.status) && (
                         <>
                           <Button
                             variant="ghost"
