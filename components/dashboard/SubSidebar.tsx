@@ -58,12 +58,12 @@ const sidebarMap: Record<string, SidebarItem[]> = {
       icon: BookOpen,
       settingKey: "abstractRegistration",
     },
-    {
-      label: "Authors",
-      path: "/abstract/authors",
-      icon: UserPen,
-      settingKey: "abstractRegistration",
-    },
+    // {
+    //   label: "Authors",
+    //   path: "/abstract/authors",
+    //   icon: UserPen,
+    //   settingKey: "abstractRegistration",
+    // },
   ],
 };
 
@@ -102,7 +102,7 @@ export function SubSidebar({
   const eventId = propEventId || searchParams.get("eventId");
 
   const isBadgePage = pathname.startsWith(
-    "/registration/my-registration/badge"
+    "/registration/my-registration/badge",
   );
   const urlEventId = isBadgePage
     ? pathname.split("/").pop() // This should extract the eventId from the URL
@@ -167,7 +167,7 @@ export function SubSidebar({
         onClick={onToggle}
         className={cn(
           "hidden lg:flex fixed top-[93px] z-[70] bg-white border-2 border-blue-100 shadow-lg rounded-full w-10 h-10 items-center justify-center transition-all duration-300 cursor-pointer group hover:shadow-xl hover:scale-105 hover:border-blue-200",
-          isOpen ? "left-[336px]" : "left-[88px]"
+          isOpen ? "left-[336px]" : "left-[88px]",
         )}
         aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
       >
@@ -182,13 +182,13 @@ export function SubSidebar({
       <aside
         className={cn(
           "hidden lg:flex fixed top-[60px] left-[95px] h-[calc(100vh-60px)] border-r transition-all duration-300 z-30 bg-gradient-to-b from-blue-50/95 to-indigo-50/95 backdrop-blur-sm shadow-xl",
-          isOpen ? "w-64" : "w-0 overflow-hidden"
+          isOpen ? "w-64" : "w-0 overflow-hidden",
         )}
       >
         <div
           className={cn(
             "h-full w-64 transition-opacity duration-200 flex flex-col",
-            isOpen ? "opacity-100" : "opacity-0"
+            isOpen ? "opacity-100" : "opacity-0",
           )}
         >
           {/* Header */}
@@ -205,7 +205,9 @@ export function SubSidebar({
               </p>
             )}
             {settingsFetched && filteredItems.length === 0 && (
-              <p className="text-xs text-gray-500 mt-1">No options available</p>
+              <p className="text-xs text-gray-500 mt-1 text-center">
+                No options available
+              </p>
             )}
           </div>
 
@@ -232,7 +234,7 @@ export function SubSidebar({
                           "flex items-center gap-3 text-sm rounded-xl px-4 py-3 font-medium w-full transition-all duration-200 group cursor-pointer border border-transparent",
                           isActive
                             ? "bg-white text-blue-700 shadow-md border-blue-200 shadow-blue-100"
-                            : "text-gray-700 hover:bg-white hover:text-blue-600 hover:shadow-md hover:border-blue-100"
+                            : "text-gray-700 hover:bg-white hover:text-blue-600 hover:shadow-md hover:border-blue-100",
                         )}
                       >
                         <div
@@ -240,7 +242,7 @@ export function SubSidebar({
                             "p-2 rounded-lg transition-colors",
                             isActive
                               ? "bg-blue-100 text-blue-600"
-                              : "bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
+                              : "bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600",
                           )}
                         >
                           <Icon size={18} />

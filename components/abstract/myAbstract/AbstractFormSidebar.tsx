@@ -20,16 +20,20 @@ import { useAbstractStore } from "@/app/store/useAbstractStore";
 import type { AbstractType } from "@/app/store/useAbstractStore";
 import { Descendant, Node as SlateNode } from "slate";
 import SlateEditor from "./SlateEditor";
+import { ArrowUpRight } from "lucide-react";
 
 type AbstractFormValues = {
   type: AbstractType;
   title: string;
   body: Descendant[];
   authors: string;
-  coAuthors: string;
+  // coAuthors: string;
+  coAuthors: string[];
   videoUrl?: string;
   category: string;
   file?: File | null;
+  hasFile: "yes" | "no";
+  hasVideo: "yes" | "no";
   confirmAccuracy: boolean;
   agreeTerms: boolean;
   interventionStatus?: "yes" | "notRelevant";
@@ -76,9 +80,12 @@ export default function AbstractFormSidebar({
         } as Descendant,
       ],
       authors: "",
-      coAuthors: "",
+      // coAuthors: "",
+      coAuthors: [""],
       videoUrl: "",
       category: "",
+      hasFile: "no",
+      hasVideo: "no",
       confirmAccuracy: false,
       agreeTerms: false,
       interventionStatus: "yes",
@@ -87,6 +94,9 @@ export default function AbstractFormSidebar({
 
   const file = watch("file");
   const body = watch("body");
+  const hasFile = watch("hasFile");
+  const hasVideo = watch("hasVideo");
+  const coAuthors = watch("coAuthors");
 
   useEffect(() => {
     if (selectedAbstract) {
@@ -122,7 +132,8 @@ export default function AbstractFormSidebar({
             href="#"
             className="text-xs text-blue-600 hover:underline mt-1 inline-block"
           >
-            Read Abstract Submission Process ↗
+            Guidelines for Abstract Submission{" "}
+            <ArrowUpRight className="inline-block ml-1 h-3 w-3" />
           </a>
         </div>
 
@@ -202,17 +213,55 @@ export default function AbstractFormSidebar({
                 </p>
               </div>
 
+              <div className="space-y-2">
+                <Label>Do you want to upload an abstract file?</Label>
+                <Controller
+                  name="hasFile"
+                  control={control}
+                  render={({ field }) => (
+                    <RadioGroup
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      className="flex gap-6"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="yes" />
+                        <Label>Yes</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="no" />
+                        <Label>No</Label>
+                      </div>
+                    </RadioGroup>
+                  )}
+                />
+              </div>
+
               {/* Upload File */}
               <div className="space-y-2">
-                <Label>Upload Abstract File (Doc & PDF only)</Label>
+                {/* <Label>Upload Abstract File (Doc & PDF only)</Label>
                 <Input
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={(e) =>
                     setValue("file", e.target.files?.[0] || null)
                   }
-                />
-                {file && <p className="text-sm text-green-600">{file.name}</p>}
+                /> */}
+                {hasFile === "yes" && (
+                  <div className="space-y-2">
+                    <Label>Upload Abstract File (Doc & PDF only)</Label>
+                    <Input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={(e) =>
+                        setValue("file", e.target.files?.[0] || null)
+                      }
+                    />
+                    {file && (
+                      <p className="text-sm text-green-600">{file.name}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Authors */}
@@ -226,17 +275,81 @@ export default function AbstractFormSidebar({
                 </div>
                 <div className="space-y-2">
                   <Label>Co-Author(s)</Label>
-                  <Input {...register("coAuthors")} placeholder="Dr John Doe" />
+
+                  {coAuthors.map((_, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <Input
+                        {...register(`coAuthors.${index}` as const)}
+                        placeholder={`Co-Author ${index + 1}`}
+                      />
+
+                      {coAuthors.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => {
+                            const updated = [...coAuthors];
+                            updated.splice(index, 1);
+                            setValue("coAuthors", updated);
+                          }}
+                        >
+                          ✕
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setValue("coAuthors", [...coAuthors, ""])}
+                    className="mt-2"
+                  >
+                    + Add another co-author
+                  </Button>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Is this a video presentation?</Label>
+                <Controller
+                  name="hasVideo"
+                  control={control}
+                  render={({ field }) => (
+                    <RadioGroup
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      className="flex gap-6"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="yes" />
+                        <Label>Yes</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="no" />
+                        <Label>No</Label>
+                      </div>
+                    </RadioGroup>
+                  )}
+                />
               </div>
 
               {/* Video URL */}
               <div className="space-y-2">
-                <Label>Enter Video URL (For video presentations)</Label>
+                {/* <Label>Enter Video URL (For video presentations)</Label>
                 <Input
                   {...register("videoUrl")}
                   placeholder="https://drive.google.com/..."
-                />
+                /> */}
+                {hasVideo === "yes" && (
+                  <div className="space-y-2">
+                    <Label>Enter Video URL</Label>
+                    <Input
+                      {...register("videoUrl")}
+                      placeholder="https://drive.google.com/..."
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Confirmation */}
@@ -259,37 +372,6 @@ export default function AbstractFormSidebar({
                     </div>
                   )}
                 />
-
-                <div>
-                  <Label>
-                    If an intervention has been carried out on human subjects:
-                  </Label>
-                  <RadioGroup
-                    defaultValue="yes"
-                    onValueChange={(val) =>
-                      setValue(
-                        "interventionStatus",
-                        val as "yes" | "notRelevant"
-                      )
-                    }
-                    className="flex flex-col space-y-2 mt-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="yes" />
-                      <Label htmlFor="yes">Yes</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="notRelevant" id="notRelevant" />
-                      <Label htmlFor="notRelevant">Not Relevant</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                {(errors.confirmAccuracy || errors.agreeTerms) && (
-                  <p className="text-sm text-red-500">
-                    Please check the required boxes above before submission.
-                  </p>
-                )}
               </div>
 
               {/* Navigation */}

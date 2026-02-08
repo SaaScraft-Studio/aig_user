@@ -11,12 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  ChevronLeft,
-  ChevronRight,
-  PlusCircle,
-  Funnel,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, PlusCircle, Funnel } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAbstractStore } from "@/app/store/useAbstractStore";
 
@@ -127,13 +122,14 @@ export const AbstractTable = ({
           <TableHeader className="bg-gray-100 uppercase">
             <TableRow>
               <TableHead>#</TableHead>
-              <TableHead>ID</TableHead>
+              <TableHead>Abstract ID</TableHead>
               <TableHead>abstract title</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>presenting author</TableHead>
+              <TableHead>co-authors</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Last Modified</TableHead>
+              <TableHead>Accepted for</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -150,8 +146,9 @@ export const AbstractTable = ({
                   <TableCell>{a.type}</TableCell>
                   <TableCell>{a.category}</TableCell>
                   <TableCell>{a.authors}</TableCell>
+                  <TableCell>{a.authors}</TableCell>
                   <TableCell>{getStatusBadge(a.status)}</TableCell>
-                  <TableCell>{a.lastModified}</TableCell>
+                  <TableCell>{a.type}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center gap-2">
                       <Button
@@ -163,7 +160,7 @@ export const AbstractTable = ({
                         View
                       </Button>
 
-                      {["DRAFT", "SUBMITTED"].includes(a.status) && (
+                      {["DRAFT"].includes(a.status) && (
                         <>
                           <Button
                             variant="ghost"
