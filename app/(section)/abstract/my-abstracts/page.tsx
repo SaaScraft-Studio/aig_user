@@ -1,32 +1,57 @@
+// app/abstract/my-abstracts/page.tsx
 "use client";
 
 import { useAbstractStore } from "@/app/store/useAbstractStore";
 import AbstractFormSidebar from "@/components/abstract/myAbstract/AbstractFormSidebar";
 import { AbstractTable } from "@/components/abstract/myAbstract/MyAbstractTable";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import Loading from "@/components/common/Loading";
 
 export default function MyAbstractPage() {
-  const { openSidebar, closeSidebar, isSidebarOpen, deleteAbstract } =
-    useAbstractStore();
-  const [editId, setEditId] = useState<number | null>(null);
+  const searchParams = useSearchParams();
+  const eventId = searchParams.get("eventId");
+
+  const {
+    openSidebar,
+    closeSidebar,
+    isSidebarOpen,
+    deleteAbstract,
+    fetchAbstracts,
+    fetchAbstractSettings,
+    fetchCategories,
+    loading,
+  } = useAbstractStore();
+
+  const [editId, setEditId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (eventId) {
+      fetchAbstracts(eventId);
+      fetchAbstractSettings(eventId);
+      fetchCategories(eventId);
+    }
+  }, [eventId, fetchAbstracts, fetchAbstractSettings, fetchCategories]);
 
   const handleAdd = () => {
     setEditId(null);
-    openSidebar(); // open without id means "Add"
+    openSidebar();
   };
 
   const handleEdit = (id: string) => {
-    const numId = Number(id);
-    setEditId(numId);
-    openSidebar(numId);
+    setEditId(id);
+    openSidebar(id);
   };
 
   const handleDelete = (id: string) => {
-    const numId = Number(id);
     if (confirm("Are you sure you want to delete this abstract?")) {
-      deleteAbstract(numId);
+      deleteAbstract(id);
     }
   };
+
+  if (loading) {
+    return <Loading />;
+  }
 
   return (
     <>
@@ -43,6 +68,7 @@ export default function MyAbstractPage() {
           setEditId(null);
         }}
         editId={editId}
+        eventId={eventId}
       />
     </>
   );

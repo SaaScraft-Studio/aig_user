@@ -1,6 +1,8 @@
-// store/useEventStore.ts
+// app/store/useEventStore.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+
+/* ===================== TYPES ===================== */
 
 interface Organizer {
   _id: string;
@@ -44,10 +46,10 @@ export interface Event {
   regNum: string;
   organizer: Organizer;
   department: Department;
-  startDate: string; // Format: "28/10/2025"
-  endDate: string; // Format: "28/10/2025"
-  startTime: string; // Format: "09:00 AM"
-  endTime: string; // Format: "06:00 AM"
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
   timeZone: string;
   venueName: Venue | string;
   country: string;
@@ -56,7 +58,7 @@ export interface Event {
   eventType: string;
   registrationType: "free" | "paid";
   currencyType?: string;
-  eventCategory: string; // Conference | Workshop | CME
+  eventCategory: string;
   isEventApp: boolean;
   dynamicStatus: "Live" | "Past" | "Upcoming";
   createdAt: string;
@@ -84,37 +86,26 @@ interface EventState {
   loading: boolean;
   error: string | null;
 
-  // Cache for individual events
-  eventCache: Map<
-    string,
-    {
-      data: Event;
-      timestamp: number;
-    }
-  >;
-
-  // Cache for registration settings
-  settingsCache: Map<
-    string,
-    {
-      data: RegistrationSettings;
-      timestamp: number;
-    }
-  >;
+  // Runtime-only cache (NOT persisted)
+  eventCache: Map<string, { data: Event; timestamp: number }>;
+  settingsCache: Map<string, { data: RegistrationSettings; timestamp: number }>;
 
   fetchEvents: () => Promise<void>;
   fetchEventById: (eventId: string) => Promise<Event | null>;
   fetchRegistrationSettings: (
-    eventId: string
+    eventId: string,
   ) => Promise<RegistrationSettings | null>;
   setCurrentEvent: (event: Event | null) => void;
-  setRegistrationSettings: (settings: RegistrationSettings | null) => void;
   clearCurrentEvent: () => void;
   clearCache: () => void;
   getEventById: (id: string) => Event | undefined;
 }
 
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
+/* ===================== CONSTANTS ===================== */
+
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+/* ===================== STORE ===================== */
 
 export const useEventStore = create<EventState>()(
   persist(
@@ -124,24 +115,18 @@ export const useEventStore = create<EventState>()(
       registrationSettings: null,
       loading: false,
       error: null,
+
       eventCache: new Map(),
       settingsCache: new Map(),
 
+      /* ===================== FETCH ALL EVENTS ===================== */
       fetchEvents: async () => {
-        const { events } = get();
-        // Don't refetch if events are already loaded
-        if (events.length > 0) {
-          return;
-        }
-
         try {
           set({ loading: true, error: null });
 
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events`,
-            {
-              method: "GET",
-            }
+            { method: "GET" },
           );
 
           if (!response.ok) {
@@ -151,8 +136,11 @@ export const useEventStore = create<EventState>()(
           const data = await response.json();
 
           if (data.success && Array.isArray(data.data)) {
-            // Cache each event individually
-            const newEventCache = new Map(get().eventCache);
+            const newEventCache = new Map<
+              string,
+              { data: Event; timestamp: number }
+            >();
+
             data.data.forEach((event: Event) => {
               newEventCache.set(event._id, {
                 data: event,
@@ -161,12 +149,12 @@ export const useEventStore = create<EventState>()(
             });
 
             set({
-              events: data.data,
-              loading: false,
+              events: data.data, // ✅ always fresh
               eventCache: newEventCache,
+              loading: false,
             });
           } else {
-            throw new Error("Invalid response format from events API");
+            throw new Error("Invalid response format");
           }
         } catch (err: any) {
           console.error("Error fetching events:", err);
@@ -177,30 +165,13 @@ export const useEventStore = create<EventState>()(
         }
       },
 
+      /* ===================== FETCH EVENT BY ID ===================== */
       fetchEventById: async (eventId: string) => {
-        const { eventCache, events } = get();
+        const cached = get().eventCache.get(eventId);
 
-        // Check cache first
-        const cached = eventCache.get(eventId);
         if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
           set({ currentEvent: cached.data });
           return cached.data;
-        }
-
-        // Check if event exists in events array
-        const existingEvent = events.find((event) => event._id === eventId);
-        if (existingEvent) {
-          // Update cache
-          const newEventCache = new Map(eventCache);
-          newEventCache.set(eventId, {
-            data: existingEvent,
-            timestamp: Date.now(),
-          });
-          set({
-            currentEvent: existingEvent,
-            eventCache: newEventCache,
-          });
-          return existingEvent;
         }
 
         try {
@@ -210,51 +181,47 @@ export const useEventStore = create<EventState>()(
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}`,
             {
-              method: "GET",
               headers: {
                 Authorization: token ? `Bearer ${token}` : "",
                 "Content-Type": "application/json",
               },
-            }
+            },
           );
 
           if (!response.ok) {
-            throw new Error(`Failed to fetch event: ${response.status}`);
+            throw new Error("Failed to fetch event");
           }
 
           const data = await response.json();
 
           if (data.success && data.data) {
-            const eventData = data.data;
-
-            // Update cache
-            const newEventCache = new Map(eventCache);
-            newEventCache.set(eventId, {
-              data: eventData,
+            const newCache = new Map(get().eventCache);
+            newCache.set(eventId, {
+              data: data.data,
               timestamp: Date.now(),
             });
 
             set({
-              currentEvent: eventData,
+              currentEvent: data.data,
+              eventCache: newCache,
               loading: false,
-              eventCache: newEventCache,
             });
 
-            return eventData;
+            return data.data;
           }
+
           return null;
-        } catch (err: any) {
+        } catch (err) {
           console.error("Error fetching event:", err);
           set({ loading: false });
           return null;
         }
       },
 
+      /* ===================== FETCH REGISTRATION SETTINGS ===================== */
       fetchRegistrationSettings: async (eventId: string) => {
-        const { settingsCache } = get();
+        const cached = get().settingsCache.get(eventId);
 
-        // Check cache first
-        const cached = settingsCache.get(eventId);
         if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
           set({ registrationSettings: cached.data });
           return cached.data;
@@ -265,46 +232,42 @@ export const useEventStore = create<EventState>()(
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${eventId}/registration-settings`,
             {
-              method: "GET",
               headers: {
-                "Content-Type": "application/json",
                 Authorization: token ? `Bearer ${token}` : "",
+                "Content-Type": "application/json",
               },
-            }
+            },
           );
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && data.data.length > 0) {
-              const settings = data.data[0];
+          if (!response.ok) return null;
 
-              // Update cache
-              const newSettingsCache = new Map(settingsCache);
-              newSettingsCache.set(eventId, {
-                data: settings,
-                timestamp: Date.now(),
-              });
+          const data = await response.json();
 
-              set({
-                registrationSettings: settings,
-                settingsCache: newSettingsCache,
-              });
+          if (data.success && data.data?.length) {
+            const settings = data.data[0];
 
-              return settings;
-            }
+            const newCache = new Map(get().settingsCache);
+            newCache.set(eventId, {
+              data: settings,
+              timestamp: Date.now(),
+            });
+
+            set({
+              registrationSettings: settings,
+              settingsCache: newCache,
+            });
+
+            return settings;
           }
+
           return null;
-        } catch (error) {
-          console.error("Error fetching registration settings:", error);
+        } catch (err) {
+          console.error("Error fetching registration settings:", err);
           return null;
         }
       },
 
       setCurrentEvent: (event) => set({ currentEvent: event }),
-
-      setRegistrationSettings: (settings) =>
-        set({ registrationSettings: settings }),
-
       clearCurrentEvent: () => set({ currentEvent: null }),
 
       clearCache: () =>
@@ -313,42 +276,21 @@ export const useEventStore = create<EventState>()(
           settingsCache: new Map(),
         }),
 
-      getEventById: (id: string) => {
-        const { events, eventCache } = get();
-
-        // Check cache first
-        const cached = eventCache.get(id);
+      getEventById: (id) => {
+        const cached = get().eventCache.get(id);
         if (cached) return cached.data;
-
-        // Check events array
-        return events.find((event) => event._id === id);
+        return get().events.find((e) => e._id === id);
       },
     }),
     {
       name: "event-storage",
+
+      // ❌ DO NOT persist cache
       partialize: (state) => ({
         events: state.events,
         currentEvent: state.currentEvent,
         registrationSettings: state.registrationSettings,
-        eventCache: Array.from(state.eventCache.entries()),
-        settingsCache: Array.from(state.settingsCache.entries()),
       }),
-      merge: (persistedState: any, currentState) => {
-        // Restore Maps from arrays
-        if (
-          persistedState?.eventCache &&
-          Array.isArray(persistedState.eventCache)
-        ) {
-          persistedState.eventCache = new Map(persistedState.eventCache);
-        }
-        if (
-          persistedState?.settingsCache &&
-          Array.isArray(persistedState.settingsCache)
-        ) {
-          persistedState.settingsCache = new Map(persistedState.settingsCache);
-        }
-        return { ...currentState, ...persistedState };
-      },
-    }
-  )
+    },
+  ),
 );

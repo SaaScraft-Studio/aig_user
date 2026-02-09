@@ -54,12 +54,17 @@ export default function ProfilePage() {
           affiliation: data.affiliation || "",
           phone: data.mobile || data.phone || "",
           email: data.email || "",
-          country: data.country || "",
           gender: data.gender || "",
+          country: data.country || "",
           city: data.city || "",
           state: data.state || "",
           mealPreference: data.mealPreference || "",
           pincode: data.pincode || "",
+          department: data.department || "",
+          address: data.address || "",
+          mciRegistered: data.mciRegistered || "no",
+          mciNumber: data.mciNumber || "",
+          mciState: data.mciState || "",
         });
       } catch (error) {
         const errorMessage =

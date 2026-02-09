@@ -6,6 +6,8 @@ export type Profile = {
   prefix: string;
   designation: string;
   affiliation: string;
+  department?: string;
+  address?: string;
   phone: string;
   email: string;
   country: string;
@@ -14,6 +16,9 @@ export type Profile = {
   state: string;
   mealPreference: string;
   pincode: string;
+  mciRegistered?: "yes" | "no";
+  mciNumber?: string;
+  mciState?: string;
 };
 
 export const getDummyProfile = (): Profile => ({

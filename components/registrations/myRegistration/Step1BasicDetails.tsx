@@ -270,8 +270,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
         defaultValues[`dynamic_${answer.id}`] = answer.value;
       });
     }
-
-    console.log("Reinitializing form with saved data");
     reset(defaultValues);
 
     // Set selected category
@@ -513,7 +511,6 @@ export default function Step1BasicDetails({ onNext }: { onNext: () => void }) {
 
   // Fixed file upload handler - UPDATED
   const handleDynamicFileUpload = (id: string, file: File | null) => {
-    console.log("Store updated, setting form value...");
     setDynamicFormFileUpload(id, file);
   };
 

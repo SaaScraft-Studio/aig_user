@@ -86,16 +86,16 @@ const SlateEditor = ({ value, onChange }: SlateEditorProps) => {
     []
   );
 
-  let characterCount = 0;
-  try {
-    characterCount = value.reduce(
-      (count, node) => count + SlateNode.string(node).length,
-      0
-    );
-  } catch {
-    characterCount = 0;
-  }
-  const isOverLimit = characterCount > MAX_CHAR;
+  // let characterCount = 0;
+  // try {
+  //   characterCount = value.reduce(
+  //     (count, node) => count + SlateNode.string(node).length,
+  //     0
+  //   );
+  // } catch {
+  //   characterCount = 0;
+  // }
+  // const isOverLimit = characterCount > MAX_CHAR;
 
   return (
     <div className="space-y-2 border rounded-md bg-white p-3 min-h-[140px]">
@@ -107,11 +107,11 @@ const SlateEditor = ({ value, onChange }: SlateEditorProps) => {
           renderElement={renderElement}
           placeholder="Enter abstract..."
         />
-        <div className="text-right text-xs text-muted-foreground mt-1">
+        {/* <div className="text-right text-xs text-muted-foreground mt-1">
           <span className={cn(isOverLimit && "text-red-500")}>
             {characterCount} / {MAX_CHAR} characters
           </span>
-        </div>
+        </div> */}
       </Slate>
     </div>
   );

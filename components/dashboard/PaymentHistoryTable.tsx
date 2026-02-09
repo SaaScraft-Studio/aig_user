@@ -51,14 +51,6 @@ export default function PaymentHistoryTable() {
 
         if (data.success && Array.isArray(data.data)) {
           setAllPayments(data.data);
-          // Debug: Check first payment structure
-          if (data.data.length > 0) {
-            console.log("First payment structure:", data.data[0]);
-            console.log(
-              "Event data:",
-              data.data[0].eventRegistrationId?.eventId
-            );
-          }
         } else {
           throw new Error("Invalid response format");
         }
@@ -193,13 +185,11 @@ export default function PaymentHistoryTable() {
 
   const handleDownloadReceipt = (payment: any) => {
     // TODO: Implement receipt download
-    console.log("Download receipt for:", payment._id);
     alert("Receipt download feature coming soon!");
   };
 
   const handleViewDetails = (payment: any) => {
     // TODO: Implement detailed view
-    console.log("View details for:", payment._id);
     alert("Payment details view coming soon!");
   };
 
