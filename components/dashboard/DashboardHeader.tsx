@@ -29,7 +29,7 @@ export function DashboardHeader({
   const [loggingOut, setLoggingOut] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [lastFetchedEventId, setLastFetchedEventId] = useState<string | null>(
-    null
+    null,
   );
 
   // Check if we're on a registration-related page
@@ -50,7 +50,7 @@ export function DashboardHeader({
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
 
         if (response.ok) {
@@ -67,7 +67,7 @@ export function DashboardHeader({
         return null;
       }
     },
-    [fetchEventById]
+    [fetchEventById],
   );
 
   // Optimized event fetching with multiple sources
@@ -137,7 +137,7 @@ export function DashboardHeader({
 
   // Format venue address
   const getVenueAddress = () => {
-    if (!currentEvent?.venueName) return "Venue TBA";
+    if (!currentEvent?.venueName) return "N/A";
 
     const venue = currentEvent.venueName;
 
@@ -151,7 +151,7 @@ export function DashboardHeader({
     if (venue.city) parts.push(venue.city);
     if (venue.state) parts.push(venue.state);
 
-    return parts.length > 0 ? parts.join(", ") : "Venue TBA";
+    return parts.length > 0 ? parts.join(", ") : "N/A";
   };
 
   // Handle profile fetching (keep existing logic)
@@ -173,7 +173,7 @@ export function DashboardHeader({
               "Content-Type": "application/json",
             },
             credentials: "include",
-          }
+          },
         );
 
         if (!res.ok) {
@@ -230,7 +230,7 @@ export function DashboardHeader({
                 Authorization: `Bearer ${token}`,
               },
               credentials: "include",
-            }
+            },
           );
         } catch (error) {
           console.log("Backend logout optional - frontend cleared");
@@ -293,7 +293,7 @@ export function DashboardHeader({
                       {currentEvent &&
                         formatEventDate(
                           currentEvent.startDate,
-                          currentEvent.endDate
+                          currentEvent.endDate,
                         )}
                     </span>
                   </div>
