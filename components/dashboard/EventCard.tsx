@@ -63,7 +63,7 @@ export default function EventTabs() {
     }
 
     router.push(
-      `/registration/my-registration/badge/${eventId}?registrationId=${registrationId}`
+      `/registration/my-registration/badge/${eventId}?registrationId=${registrationId}`,
     );
   };
 
@@ -77,7 +77,7 @@ export default function EventTabs() {
       const eventEndDate = new Date(
         parseInt(year),
         parseInt(month) - 1,
-        parseInt(day)
+        parseInt(day),
       );
       return eventEndDate < new Date();
     } catch (error) {
@@ -88,7 +88,7 @@ export default function EventTabs() {
 
   // Helper function to get user registration for an event
   const getUserRegistration = (
-    eventId: string
+    eventId: string,
   ): UserRegistration | undefined => {
     return registrations.find((r) => r.eventId === eventId && r.isPaid);
   };
@@ -100,11 +100,11 @@ export default function EventTabs() {
 
   // Categorize events
   const registeredEvents = events.filter(
-    (event) => isUserRegistered(event._id) && !isEventPast(event)
+    (event) => isUserRegistered(event._id) && !isEventPast(event),
   );
 
   const eventsToRegister = events.filter(
-    (event) => !isUserRegistered(event._id) && !isEventPast(event)
+    (event) => !isUserRegistered(event._id) && !isEventPast(event),
   );
 
   const pastEvents = events.filter((event) => isEventPast(event));
@@ -129,10 +129,10 @@ export default function EventTabs() {
 
     return tabEvents
       .filter((event) =>
-        event?.eventName?.toLowerCase().includes(searchQuery.toLowerCase())
+        event?.eventName?.toLowerCase().includes(searchQuery.toLowerCase()),
       )
       .filter((event) =>
-        filterType === "All" ? true : event?.eventCategory === filterType
+        filterType === "All" ? true : event?.eventCategory === filterType,
       );
   };
 
@@ -210,7 +210,7 @@ export default function EventTabs() {
                 "pb-2 transition-all cursor-pointer",
                 activeTab === tab
                   ? "border-b-2 border-blue-800 text-blue-900"
-                  : "text-gray-500 hover:text-blue-800"
+                  : "text-gray-500 hover:text-blue-800",
               )}
             >
               {tab} ({count})
@@ -249,8 +249,8 @@ export default function EventTabs() {
           {activeTab === "Registered"
             ? registeredEvents.length
             : activeTab === "Past"
-            ? pastEvents.length
-            : eventsToRegister.length}{" "}
+              ? pastEvents.length
+              : eventsToRegister.length}{" "}
           events
           {(searchQuery || filterType !== "All") && " (filtered)"}
         </div>
@@ -266,10 +266,10 @@ export default function EventTabs() {
             {searchQuery || filterType !== "All"
               ? "Try adjusting your search or filter"
               : activeTab === "Registered"
-              ? "You haven't registered for any events yet"
-              : activeTab === "All"
-              ? "No events available for registration"
-              : "No past events found"}
+                ? "You haven't registered for any events yet"
+                : activeTab === "All"
+                  ? "No events available for registration"
+                  : "No past events found"}
           </p>
           {activeTab === "Registered" && (
             <Button
@@ -318,10 +318,10 @@ export default function EventTabs() {
                         isRegistered
                           ? "bg-green-100 text-green-800 border border-green-200"
                           : event.dynamicStatus === "Live"
-                          ? "bg-blue-100 text-blue-800"
-                          : event.dynamicStatus === "Past"
-                          ? "bg-gray-100 text-gray-800"
-                          : "bg-orange-100 text-orange-800"
+                            ? "bg-blue-100 text-blue-800"
+                            : event.dynamicStatus === "Past"
+                              ? "bg-gray-100 text-gray-800"
+                              : "bg-orange-100 text-orange-800",
                       )}
                     >
                       {isRegistered ? (
@@ -361,8 +361,10 @@ export default function EventTabs() {
                       <div className="flex items-center text-sm text-gray-600 gap-2">
                         <MapPin className="w-4 h-4 text-[#00509E] flex-shrink-0" />
                         <span className="truncate">
-                          {event.venueName?.venueName ||
-                            `${event.city}, ${event.state}`}
+                          {typeof event.venueName === "string"
+                            ? event.venueName
+                            : event.venueName?.venueName ||
+                              `${event.city}, ${event.state}`}
                         </span>
                       </div>
                     </div>
@@ -395,7 +397,7 @@ export default function EventTabs() {
                         buttonConfig.variant === "primary" &&
                           "bg-[#00509E] hover:bg-[#003B73] text-white",
                         buttonConfig.variant === "disabled" &&
-                          "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          "bg-gray-300 text-gray-500 cursor-not-allowed",
                       )}
                     >
                       {buttonConfig.text}
