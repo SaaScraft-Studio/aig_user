@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { X, User, Users, MonitorPlay, Utensils } from "lucide-react";
+import { X, User, Users, MonitorPlay, Utensils, BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type SidebarItem = {
@@ -55,7 +55,14 @@ const sidebarMap: Record<string, SidebarItem[]> = {
       settingKey: "banquetRegistration",
     },
   ],
-  abstract: [],
+  abstract: [
+    {
+      label: "My Abstracts",
+      path: "/abstract/my-abstracts",
+      icon: BookOpen,
+      settingKey: "abstractRegistration",
+    },
+  ],
   travel: [],
   accomodation: [],
   presentation: [],
@@ -82,7 +89,7 @@ export const MobileSubSidebar = ({
   // const eventId = searchParams.get("eventId");
 
   const isBadgePage = pathname.startsWith(
-    "/registration/my-registration/badge"
+    "/registration/my-registration/badge",
   );
   const urlEventId = isBadgePage
     ? pathname.split("/").pop()
@@ -108,7 +115,7 @@ export const MobileSubSidebar = ({
               "Content-Type": "application/json",
               Authorization: token ? `Bearer ${token}` : "",
             },
-          }
+          },
         );
 
         if (response.ok) {
@@ -162,7 +169,7 @@ export const MobileSubSidebar = ({
       <aside
         className={cn(
           "fixed top-0 left-0 h-full w-64 bg-[#eaf3ff] z-50 transform transition-transform duration-300 ease-in-out lg:hidden",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="p-4 space-y-6">
@@ -206,7 +213,7 @@ export const MobileSubSidebar = ({
                       "flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors",
                       isActive
                         ? "bg-white text-blue-600 shadow-sm"
-                        : "text-gray-700 hover:bg-white hover:text-blue-600"
+                        : "text-gray-700 hover:bg-white hover:text-blue-600",
                     )}
                   >
                     <Icon size={18} />

@@ -35,9 +35,6 @@ export default function Footer() {
             {[
               { label: "About Us", href: "/about" },
               { label: "Contact Us", href: "/contact" },
-              { label: "Conferences", href: "/conferences" },
-              { label: "Workshops", href: "/workshops" },
-              { label: "CMEs", href: "/cmes" },
               { label: "Login/ Sign Up", href: "/login" },
             ].map((item) => (
               <li key={item.href}>

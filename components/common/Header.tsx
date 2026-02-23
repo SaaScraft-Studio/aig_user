@@ -41,7 +41,7 @@ export default function Header() {
                 Authorization: `Bearer ${token}`,
               },
               credentials: "include",
-            }
+            },
           );
         } catch (error) {}
       }
