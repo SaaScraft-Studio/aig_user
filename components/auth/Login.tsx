@@ -76,7 +76,7 @@ export default function Login() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
           credentials: "include", // ✅ Important for cookies (refresh token)
-        }
+        },
       );
 
       const result = await res.json(); // ✅ Parse response JSON
@@ -100,7 +100,7 @@ export default function Login() {
         setSubmitStatus("error");
         // ✅ Use backend error message instead of generic one
         toast.error(
-          result.message || "Invalid email or password. Please try again."
+          result.message || "Invalid email or password. Please try again.",
         );
       }
     } catch (error) {
@@ -138,11 +138,11 @@ export default function Login() {
             >
               {/* Header */}
               <div className="text-center mb-6">
-                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                {/* <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                   <LogIn className="w-8 h-8 text-[#00509E]" />
-                </div>
+                </div> */}
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                  Welcome Back
+                  Sign In
                 </h1>
                 <p className="text-gray-600 text-sm sm:text-base">
                   Sign in to your account to continue
@@ -207,7 +207,7 @@ export default function Login() {
                         }}
                         className={cn(
                           "pl-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                          errors.email ? "border-red-500" : "border-gray-300"
+                          errors.email ? "border-red-500" : "border-gray-300",
                         )}
                       />
                     </div>
@@ -240,7 +240,9 @@ export default function Login() {
                         }}
                         className={cn(
                           "pl-10 pr-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                          errors.password ? "border-red-500" : "border-gray-300"
+                          errors.password
+                            ? "border-red-500"
+                            : "border-gray-300",
                         )}
                       />
                       <button
@@ -295,7 +297,7 @@ export default function Login() {
               )}
 
               {/* Sign Up Link */}
-              <p className="text-center text-sm text-gray-600 mt-6">
+              <p className="text-center text-lg text-gray-600 mt-6">
                 Don't have an account?{" "}
                 <Link
                   href="/signup"

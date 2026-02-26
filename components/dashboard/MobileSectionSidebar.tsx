@@ -3,7 +3,7 @@
 
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { X, FileText } from "lucide-react";
+import { X, FileText, BookOpen } from "lucide-react";
 
 const mobileSections = [
   {
@@ -12,6 +12,12 @@ const mobileSections = [
     icon: FileText,
     key: "registrations",
   },
+  // {
+  //   label: "Abstracts",
+  //   href: "/abstract/my-abstracts",
+  //   icon: BookOpen,
+  //   key: "abstracts",
+  // },
 ];
 
 export const MobileSectionSidebar = ({
@@ -41,7 +47,7 @@ export const MobileSectionSidebar = ({
       <aside
         className={cn(
           "fixed top-0 left-0 h-full w-64 bg-[#eaf3ff] z-50 transform transition-transform duration-300 ease-in-out lg:hidden",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="p-4 space-y-6">
@@ -67,7 +73,7 @@ export const MobileSectionSidebar = ({
                   "flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium w-full text-left transition-colors",
                   activeSection === key
                     ? "bg-white text-blue-600 shadow-sm border-l-4 border-blue-600"
-                    : "text-gray-700 hover:bg-white hover:text-blue-600"
+                    : "text-gray-700 hover:bg-white hover:text-blue-600",
                 )}
               >
                 <Icon size={18} />

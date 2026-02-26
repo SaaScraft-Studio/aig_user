@@ -57,7 +57,7 @@ export default function ForgotPassword() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
-        }
+        },
       );
 
       const data = await res.json();
@@ -178,7 +178,7 @@ export default function ForgotPassword() {
                     onChange={(e) => handleInputChange(e.target.value)}
                     className={cn(
                       "border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                      errors.email ? "border-red-500" : "border-gray-300"
+                      errors.email ? "border-red-500" : "border-gray-300",
                     )}
                   />
                   {errors.email && (
@@ -209,7 +209,7 @@ export default function ForgotPassword() {
             {/* Additional Help */}
             {status === "idle" && (
               <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
+                <p className="text-lg text-gray-600">
                   Remember your password?{" "}
                   <Link
                     href="/login"
