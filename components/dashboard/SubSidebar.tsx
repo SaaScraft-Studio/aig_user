@@ -51,20 +51,14 @@ const sidebarMap: Record<string, SidebarItem[]> = {
       settingKey: "banquetRegistration",
     },
   ],
-  abstracts: [
-    {
-      label: "My Abstracts",
-      path: "/abstract/my-abstracts",
-      icon: BookOpen,
-      settingKey: "abstractRegistration",
-    },
-    // {
-    //   label: "Authors",
-    //   path: "/abstract/authors",
-    //   icon: UserPen,
-    //   settingKey: "abstractRegistration",
-    // },
-  ],
+  // abstracts: [
+  //   {
+  //     label: "My Abstracts",
+  //     path: "/abstract/my-abstracts",
+  //     icon: BookOpen,
+  //     settingKey: "abstractRegistration",
+  //   },
+  // ],
 };
 
 type RegistrationSettings = {

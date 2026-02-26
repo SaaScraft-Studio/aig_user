@@ -12,12 +12,12 @@ const mobileSections = [
     icon: FileText,
     key: "registrations",
   },
-  {
-    label: "Abstracts",
-    href: "/abstract/my-abstracts",
-    icon: BookOpen,
-    key: "abstracts",
-  },
+  // {
+  //   label: "Abstracts",
+  //   href: "/abstract/my-abstracts",
+  //   icon: BookOpen,
+  //   key: "abstracts",
+  // },
 ];
 
 export const MobileSectionSidebar = ({

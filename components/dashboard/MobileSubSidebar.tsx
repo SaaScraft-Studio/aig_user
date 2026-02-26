@@ -55,14 +55,14 @@ const sidebarMap: Record<string, SidebarItem[]> = {
       settingKey: "banquetRegistration",
     },
   ],
-  abstract: [
-    {
-      label: "My Abstracts",
-      path: "/abstract/my-abstracts",
-      icon: BookOpen,
-      settingKey: "abstractRegistration",
-    },
-  ],
+  // abstract: [
+  //   {
+  //     label: "My Abstracts",
+  //     path: "/abstract/my-abstracts",
+  //     icon: BookOpen,
+  //     settingKey: "abstractRegistration",
+  //   },
+  // ],
   travel: [],
   accomodation: [],
   presentation: [],

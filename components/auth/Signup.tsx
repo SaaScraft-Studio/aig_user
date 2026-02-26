@@ -194,7 +194,7 @@ export default function Signup() {
             ...data,
             // recaptchaToken: recaptchaValue,
           }),
-        }
+        },
       );
 
       if (!res.ok) {
@@ -209,7 +209,7 @@ export default function Signup() {
           toast.error("Email already exists. Please use a different email.");
         } else {
           toast.error(
-            errorData.message || "Registration failed. Please try again."
+            errorData.message || "Registration failed. Please try again.",
           );
         }
         setSubmitStatus("error");
@@ -219,7 +219,7 @@ export default function Signup() {
       const result = await res.json();
       setSubmitStatus("success");
       toast.success(
-        result.message || "Registration successful! Redirecting to login..."
+        result.message || "Registration successful! Redirecting to login...",
       );
 
       // Reset form and redirect after delay
@@ -842,7 +842,7 @@ export default function Signup() {
                         !watch("termAndCondition")
                           ? "border-gray-400 bg-white"
                           : "border-[#00509E] bg-[#00509E]",
-                        errors.termAndCondition && "border-red-500"
+                        errors.termAndCondition && "border-red-500",
                       )}
                     />
                     <label
@@ -898,7 +898,7 @@ export default function Signup() {
               )}
 
               {/* Login Link */}
-              <p className="text-center text-sm text-gray-600 mt-6">
+              <p className="text-center text-lg text-gray-600 mt-6">
                 Already have an account?{" "}
                 <Link
                   href="/login"

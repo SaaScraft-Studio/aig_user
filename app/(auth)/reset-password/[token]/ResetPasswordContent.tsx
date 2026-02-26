@@ -106,7 +106,7 @@ export default function ResetPasswordContent({
           body: JSON.stringify({
             password: data.password,
           }),
-        }
+        },
       );
 
       const result = await res.json();
@@ -243,7 +243,7 @@ export default function ResetPasswordContent({
                       }}
                       className={cn(
                         "pl-10 pr-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
-                        errors.password ? "border-red-500" : "border-gray-300"
+                        errors.password ? "border-red-500" : "border-gray-300",
                       )}
                     />
                     <button
@@ -285,7 +285,7 @@ export default function ResetPasswordContent({
                         "pl-10 pr-10 border-2 focus:border-[#00509E] focus:ring-[#00509E] transition-colors",
                         errors.confirmPassword
                           ? "border-red-500"
-                          : "border-gray-300"
+                          : "border-gray-300",
                       )}
                     />
                     <button
@@ -331,7 +331,7 @@ export default function ResetPasswordContent({
             {/* Additional Help */}
             {submitStatus === "idle" && (
               <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
+                <p className="text-lg text-gray-600">
                   Remember your password?{" "}
                   <Link
                     href="/login"
