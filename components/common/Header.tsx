@@ -91,9 +91,9 @@ export default function Header() {
         {/* Logo */}
         <Link href="/">
           <Image
-            src="/headerImg/logo.png"
+            src="/headerImg/headerImage.png"
             alt="AIG Logo"
-            width={120}
+            width={110}
             height={40}
             className="cursor-pointer w-auto"
             priority

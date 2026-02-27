@@ -17,11 +17,15 @@ export default function HeroSection() {
       {/* Left-aligned Content */}
       <div className="relative z-10 text-white max-w-2xl space-y-6 text-left">
         <h1 className="text-4xl md:text-6xl font-bold font-francois">
-          AIG Hospitals
+          AIG Hospitals | Academic Cell
         </h1>
-        <p className="text-base md:text-lg font-poppins leading-relaxed">
-          Lorem ipsum dolor sit amet consectetur. Accumsan sed volutpat placerat
-          dignissim nisi lacus at in.
+
+        <p className="text-base md:text-lg font-poppins leading-relaxed mt-4 max-w-3xl">
+          AIG Hospitals, one of India's largest tertiary care hospitals, is a
+          pioneer in academics driven content and events. The Academic Cell at
+          AIG regularly conducts workshops, meetings, CMEs and large-scale
+          conferences covering the entire spectrum of medical & surgical
+          specialties.
         </p>
 
         {/* Search Bar */}

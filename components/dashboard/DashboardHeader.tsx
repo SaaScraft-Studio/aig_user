@@ -261,9 +261,9 @@ export function DashboardHeader({
         </Button>
         <Link href="/" className="flex items-center">
           <Image
-            src="/headerImg/logo.png"
+            src="/headerImg/headerImage.png"
             alt="AIG Hospitals Logo"
-            width={120}
+            width={110}
             height={40}
             className="object-contain cursor-pointer"
             priority
