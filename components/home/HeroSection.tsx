@@ -11,16 +11,18 @@ export default function HeroSection() {
         backgroundImage: "url('/homeImg/auditorium.avif')",
       }}
     >
-      {/* Bluish transparent overlay like image */}
+      {/* Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#050c1a]/70 to-[#08152e]/60 z-0" />
 
-      {/* Left-aligned Content */}
-      <div className="relative z-10 text-white max-w-2xl space-y-6 text-left">
-        <h1 className="text-4xl md:text-6xl font-bold font-francois">
+      {/* Content */}
+      <div className="relative z-10 text-white max-w-4xl space-y-6 text-left">
+        {/* Heading */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-francois leading-tight md:whitespace-nowrap">
           AIG Hospitals | Academic Cell
         </h1>
 
-        <p className="text-base md:text-lg font-poppins leading-relaxed mt-4 max-w-3xl">
+        {/* Description */}
+        <p className="text-sm sm:text-base md:text-lg font-poppins leading-relaxed max-w-3xl">
           AIG Hospitals, one of India's largest tertiary care hospitals, is a
           pioneer in academics driven content and events. The Academic Cell at
           AIG regularly conducts workshops, meetings, CMEs and large-scale
@@ -29,7 +31,7 @@ export default function HeroSection() {
         </p>
 
         {/* Search Bar */}
-        <div className="relative max-w-md">
+        <div className="relative w-full max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
           <Input
             type="text"
