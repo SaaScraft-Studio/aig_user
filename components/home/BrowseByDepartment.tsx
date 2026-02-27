@@ -66,7 +66,7 @@ export default function BrowseByDepartment() {
     }
 
     router.push(
-      `/registration/my-registration/badge/${eventId}?registrationId=${registrationId}`
+      `/registration/my-registration/badge/${eventId}?registrationId=${registrationId}`,
     );
   };
 
@@ -77,7 +77,7 @@ export default function BrowseByDepartment() {
       const eventEndDate = new Date(
         parseInt(year),
         parseInt(month) - 1,
-        parseInt(day)
+        parseInt(day),
       );
       return eventEndDate < new Date();
     } catch (error) {
@@ -88,7 +88,7 @@ export default function BrowseByDepartment() {
 
   const filteredEvents = selectedDept
     ? events.filter(
-        (event) => event.department?.departmentName === selectedDept
+        (event) => event.department?.departmentName === selectedDept,
       )
     : events;
 
@@ -129,7 +129,7 @@ export default function BrowseByDepartment() {
                     <SelectItem key={idx} value={deptName}>
                       {deptName}
                     </SelectItem>
-                  )
+                  ),
               )}
             </SelectContent>
           </Select>
@@ -156,10 +156,9 @@ export default function BrowseByDepartment() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-5">
           {sortedEvents.map((event) => {
-            const isPast =
-              !!event.endDate && new Date(event.endDate) < new Date();
+            const isPast = isEventPast(event); // ✅ FIXED
             const userReg = registrations.find(
-              (r) => r.eventId === event._id && r.isPaid
+              (r) => r.eventId === event._id && r.isPaid,
             );
 
             return (
@@ -176,20 +175,36 @@ export default function BrowseByDepartment() {
                 )}
 
                 {/* Image container */}
+                {/* Image */}
                 <div
-                  className="w-full p-0 m-0 overflow-hidden"
-                  style={{ aspectRatio: "1/1.414" }}
+                  className="relative w-full overflow-hidden bg-gray-100"
+                  style={{ aspectRatio: "300/250" }}
                 >
                   <img
                     src={event.eventImage}
                     alt={event.eventName}
-                    className="w-full h-full object-cover p-0 m-0 block transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = "none";
                     }}
                   />
+
+                  {/* Event Status Badge */}
+                  <div className="absolute top-3 left-3">
+                    <span
+                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        userReg
+                          ? "bg-green-100 text-green-800 border border-green-200"
+                          : isPast
+                            ? "bg-gray-100 text-gray-800"
+                            : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {userReg ? "Registered" : isPast ? "Past" : "Live"}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Content */}
@@ -241,15 +256,15 @@ export default function BrowseByDepartment() {
                       userReg
                         ? "bg-green-600 hover:bg-green-700"
                         : isPast
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-[#00509E] hover:bg-[#003B73]"
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-[#00509E] hover:bg-[#003B73]"
                     }`}
                   >
                     {userReg
                       ? "View Badge"
                       : isPast
-                      ? "Registration Closed"
-                      : "Register"}
+                        ? "Registration Closed"
+                        : "Register"}
                   </Button>
                 </div>
               </Card>
