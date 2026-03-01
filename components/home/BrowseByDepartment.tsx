@@ -23,7 +23,6 @@ import { useUserStore } from "@/app/store/useUserStore";
 
 export default function BrowseByDepartment() {
   const { events, fetchEvents } = useEventStore();
-  console.log("Fetched Events:", events); // Debug log to check fetched events
   const { registrations, fetchRegistrations } = useUserRegistrationsStore();
   const router = useRouter();
   const { isAuthenticated } = useUserStore();
