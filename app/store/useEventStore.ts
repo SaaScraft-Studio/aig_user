@@ -61,6 +61,7 @@ export interface Event {
   eventCategory: string;
   isEventApp: boolean;
   dynamicStatus: "Live" | "Past" | "Upcoming";
+  brochureUpload: string;
   createdAt: string;
   updatedAt: string;
 }

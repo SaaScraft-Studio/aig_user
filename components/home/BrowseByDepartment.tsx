@@ -23,6 +23,7 @@ import { useUserStore } from "@/app/store/useUserStore";
 
 export default function BrowseByDepartment() {
   const { events, fetchEvents } = useEventStore();
+  console.log("Fetched Events:", events); // Debug log to check fetched events
   const { registrations, fetchRegistrations } = useUserRegistrationsStore();
   const router = useRouter();
   const { isAuthenticated } = useUserStore();
@@ -68,6 +69,10 @@ export default function BrowseByDepartment() {
     router.push(
       `/registration/my-registration/badge/${eventId}?registrationId=${registrationId}`,
     );
+  };
+
+  const handleDownloadBrochure = (url: string) => {
+    window.open(url, "_blank");
   };
 
   const isEventPast = (event: any): boolean => {
@@ -223,11 +228,34 @@ export default function BrowseByDepartment() {
                       <MapPin className="w-4 h-4 flex-shrink-0 text-[#00509E]" />
                       <span className="truncate">{event.city}</span>
                     </div>
+                    {event.brochureUpload && (
+                      <button
+                        onClick={() =>
+                          handleDownloadBrochure(event.brochureUpload)
+                        }
+                        className="inline-flex items-center gap-1 text-md text-[#00509E] hover:text-[#003B73] cursor-pointer font-medium"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                        Download Brochure
+                      </button>
+                    )}
                   </div>
 
                   {/* Event Type & Category */}
-                  <div className="flex items-center gap-2 pt-2">
-                    <span className="inline-block px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full">
+                  <div className="flex items-center gap-2 pt-2 flex-wrap">
+                    <span className="inline-block px-2 py-1 text-xs bg-blue-50 text-[#00509E] rounded-full">
                       {event.eventCategory}
                     </span>
                     <span className="inline-block px-2 py-1 text-xs bg-gray-50 text-gray-700 rounded-full">

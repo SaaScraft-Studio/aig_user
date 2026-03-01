@@ -49,7 +49,7 @@ export default function Footer() {
         {/* Logo, Contact & Social */}
         <div className="space-y-4">
           <Image
-            src="/footerImg/logo.png"
+            src="/headerImg/headerImage.png"
             alt="AIG Logo"
             width={120}
             height={40}
