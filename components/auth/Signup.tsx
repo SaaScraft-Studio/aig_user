@@ -316,10 +316,7 @@ export default function Signup() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Prefix */}
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="prefix"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="prefix" className="text-sm font-medium">
                         Prefix <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
@@ -348,10 +345,7 @@ export default function Signup() {
 
                     {/* Full Name */}
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="fullname"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="fullname" className="text-sm font-medium">
                         Full Name <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
@@ -381,10 +375,7 @@ export default function Signup() {
                   {/* Email */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="email"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="email" className="text-sm font-medium">
                         Email <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
@@ -414,10 +405,7 @@ export default function Signup() {
 
                     {/* Mobile */}
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="mobile"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="mobile" className="text-sm font-medium">
                         Mobile Number <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
@@ -453,7 +441,7 @@ export default function Signup() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="affiliation"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm font-medium"
                       >
                         Affiliation <span className="text-red-500">*</span>
                       </Label>
@@ -487,7 +475,7 @@ export default function Signup() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="designation"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm font-medium"
                       >
                         Designation <span className="text-red-500">*</span>
                       </Label>
@@ -521,7 +509,8 @@ export default function Signup() {
                   {/* MCI Registration (Yes / No) */}
                   <div className="space-y-2">
                     <Label>
-                      MCI Registration <span className="text-red-600">*</span>
+                      State Medical Council Registration Number{" "}
+                      <span className="text-red-600">*</span>
                     </Label>
 
                     <Controller
@@ -720,10 +709,7 @@ export default function Signup() {
                   {/* Password */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="password"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="password" className="text-sm font-medium">
                         Password <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
@@ -768,7 +754,7 @@ export default function Signup() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="confirmPassword"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm font-medium"
                       >
                         Confirm Password <span className="text-red-500">*</span>
                       </Label>
@@ -882,7 +868,7 @@ export default function Signup() {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-[#00509E] to-[#003B73] hover:from-[#003B73] hover:to-[#00274D] text-white font-semibold py-3 text-lg rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 mt-4"
+                    className="w-full bg-gradient-to-r from-[#00509E] to-[#003B73] hover:from-[#003B73] hover:to-[#00274D] text-white font-semibold py-3 text-lg rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 mt-4 cursor-pointer"
                     disabled={loading}
                   >
                     {loading ? (

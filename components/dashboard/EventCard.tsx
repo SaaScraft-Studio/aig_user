@@ -30,6 +30,7 @@ export default function EventTabs() {
   const [filterType, setFilterType] = useState("All");
 
   const { events, fetchEvents, loading, error } = useEventStore();
+  // console.log("Fetched events:", events);
   const { registrations, fetchRegistrations } = useUserRegistrationsStore();
   const router = useRouter();
 
